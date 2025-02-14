@@ -2,9 +2,9 @@
 Simple Weapons System built completely in Python. Ready to be ported into any game idea you can come up with!
 
 <p float="left">
-  <img src="Resources/MainMenu.png" width="300" />
-  <img src="Resources/Range Menu.png" width="300" /> 
-  <img src="Resources/Shooting.png" width="300" />
+  <img src="Resources/MainMenu.png" width="250" />
+  <img src="Resources/Range Menu.png" width="250" /> 
+  <img src="Resources/Shooting.png" width="250" />
 </p>
 
 ## Set Up and Run
