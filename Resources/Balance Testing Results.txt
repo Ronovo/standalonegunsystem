@@ -1,0 +1,135 @@
+Test Results
+
+Small
+PISTOLS
+1.) M1911 - 7 Shots, Base 80 at 100M
+50 M = +/+/-/+/-/+/ DESTROYED
+100 M = +/-/+/+/-/+/ DESTROYED
+300 M = +/-/-/-/+/+/+ DESTROYED 
+500 M = -/-/-/-/-/-/-
+
+2.) USP .45 - 12 shots/ Base 75 at 100M
+50 M = +/+/+////////// DESTROYED
+100 M = -/-/-/+/+/+/////// DESTROYED
+300 M = +/+/-/-/-/+/////// DESTROYED
+500 M = -/-/-/-/-/-/-/-/-/-/-/-/
+
+3.) M9 - 15 shots/ Base 70 at 150M
+50M = -/+/-/+/+/-/+///////// DESTROYED
+150M = +/-/+/+/-/+////////// DESTROYED
+300M = -/-/-/+/+/-/+/-/+/////// DESTROYED
+500M = -/-/-/-/-/-/-/-/-/-/-/-/-/-/-/
+
+4.) Desert Eagle 7 Shots/ Base 60 at 200M
+50M = +/-/+///// DESTROYED
+150M = +/+////// DESTROYED
+300M = -/-/-/-/-/-/+/
+500M = -/-/-/-/-/-/-/
+
+SMGS
+5.) MP5 - 30 Shots/ Base 40 at 300M
+50M = +/+/-/+/-/+///////////////////////// DESTROYED
+150M = -/-/-/-/+/+/+/+/////////////////////// DESTROYED
+300M = -/-/+/+/-/+/-/+/////////////////////// DESTROYED
+500M = -/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/
+
+6.) AK-47u - 30 Shots/ Base 40 at 250M 
+50M = +/+/+//////////////////////////// DESTROYED
+150M = +/-/-/+/+////////////////////////// DESTROYED
+300M = +/-/+/+/////////////////////////// DESTROYED (Lucky Rolls)
+500M = -/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/
+
+7.) P90 - 50 shots/ base 30 at 350M?
+50M = -/+/+/-/+/-/-/-/-/-/+/+/+/-/-/-/+/+///////////////////////////////// DESTROYED
+150M = +/+/-/+/-/+/-/-/-/-/+/-/-/-/+/-/-/-/+/-/-/+////////////////////////////// DESTROYED
+300M = +/-/-/+/+/+/-/-/-/-/-/-/-/+/+/+/-/-/-/-/-/-/-/-/-/+//////////////////////// DESTROYED
+500M = All 50 Misses
+
+8.) Mini-Uzi - 32/ base 35 at 200M
+50M = +/-/-/+/+/+/////////////////////////// DESTROYED
+150M = -/+/+/-/-/-/+/-/-/-/+////////////////////// DESTROYED
+300M = +/-/-/+/-/-/-/-/-/-/+/-/-/-/-/-/-/-/-/+///////////// DESTROYED
+500M = All 32 Miss
+
+Medium
+1.) W1200 - 7 shots/ base 90 at 50M
+50M - +/+/+//// DESTROYED
+150M - +/+/+//// DESTROYED
+300M - -/-/-/-/-/-/-/
+500M - -/-/-/-/-/-/-/
+
+2.) M1014 - 4 shots / base 90 at 50M
+50M = +/+///  DESTROYED
+150M = +/-/-/+/ DESTROYED
+300M = +/-/-/+/ DESTROYED
+500M = -/-/-/-/ -/-/-/-/
+
+3.) M16A4 - 30 Shots/ base 60 at 400M
+50M = +/+/+//////////////////////////// DESTROYED
+150M = +/+/+//////////////////////////// DESTROYED
+300M = +/+/+//////////////////////////// DESTROYED
+500M = -/+/-/-/-/-/-/-/+/+///////////////////// DESTROYED
+
+4.) AK47 - 30 shots/ base 60 at 300M
+50M = +/+///////////////////////////// DESTROYED
+150M = +/-/+//////////////////////////// DESTROYED
+300M = -/+/-/+/////////////////////////// DESTROYED
+500M = -/-/+/+/////////////////////////// DESTROYED
+
+5.) G3 - 20 shots/ base 60 at 500M
+50M = +/+/+/-/+//////////////// DESTROYED
+150M = -/+/+/+/+//////////////// DESTROYED
+300M = +/-/+/+/+//////////////// DESTROYED
+500M = -/-/-/-/+/-/-/+/-/+/+/////////// DESTROYED
+
+Large - 5 Shots/ base 80 at 500M
+1.) M40A3
+50M = +/+//// DESTROYED
+150M = +/+//// DESTROYED
+300M = +/+//// DESTROYED
+500M = -/+/+/// DESTROYED
+
+2.) Dragunov - 20/ base 80 at 500M
+50M = +/+/+////////////////// DESTROYED
+150M = +/+/+////////////////// DESTROYED
+300M = +/+/+////////////////// DESTROYED
+500M = +/+/+////////////////// DESTROYED
+
+3.) Barrett .50Cal - 1 shot/ base 70 at 500M
+50M = + DESTROYED
+150M = + DESTROYED
+300M = + + + DESTROYED
+500M = + - + DESTROYED
+
+4.) M249 SAW - 100 shots/ base 50 at 300M (30 damage)
+50M = 9 Shots/7 Hits DESTROYED
+150M = 16 Shots/7 Hits DESTROYED
+300M = 18 Shots/7 Hits DESTROYED
+500M = 70 Shots/7 Hits DESTROYED
+
+5.) M60E4 - 100 shots/ base 45 at 300M (75 damage)
+50M = 3 Shots/3 Hits DESTROYED
+150M = 4 Shots/3 Hits DESTROYED
+300M = 7 Shots/3 Hits DESTROYED
+500M = 71 Shots/3 Hits DESTROYED
+
+6.) RPD - 100 shots/ base 35 at 300M (50 Damage)
+50M = 9 Shots/4 Hits DESTROYED
+150M = 7 Shots/4 Hits DESTROYED
+300M = 8 Shots/4 Hits DESTROYED
+500M =  100 Shots/0 Hits 
+
+--------------------------
+BALANCE TEST NUMBERS
+
+5.) M60E4 - 100 shots/ base 35 at 300M (75 damage)
+50M = 4 Shots/3 Hits DESTROYED
+150M = 5 Shots/3 Hits DESTROYED
+300M = 16 Shots/3 Hits DESTROYED
+500M = 100 Shots/0 Hits
+
+6.) RPD - 100 shots/ base 45 at 300M (50 Damage)
+50M = 9 Shots/4 Hits DESTROYED
+150M = 5 Shots/4 Hits DESTROYED
+300M = 10 Shots/4 Hits DESTROYED
+500M =  60 Shots/4 Hits DESTROYED 100 SHots/4 Hits DESTROYED
