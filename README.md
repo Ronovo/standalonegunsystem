@@ -35,27 +35,27 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
 - M9
 - Desert Eagle
 
-### SMG
+### SMG (Small Arms)
 - MP5
 - AK-47u
 - p90
 - Mini Uzi
 
-# Shotguns
+### Shotguns (Medium Arms)
 - W1200
 - M1014
 
-# ARs
+### ARs (Medium Arms)
 - M16A4
 - AK47
 - G3
 
-# Snipers
+### Snipers(Heavy Arms)
 - M40A3
 - Dragunov
 - Barrett .50Cal
 
-# LMGs
+### LMGs(Heavy Arms)
 - M249 Saw
 - M60E4
 - RPD
