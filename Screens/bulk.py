@@ -20,13 +20,13 @@ def bulkShots():
 
 
     # Ask For Distance
-    newDummy = dummy_preset.getNewDummy('m')
-    newDummy.setDummyRange(False)
+    newDummy = dummy_preset.getNewDummy(False)
 
     reportArray = getReportArray(selectedWeapon, magazineCount, newDummy)
 
     for x in reportArray:
         print(x)
+    print("\n")
 
 
 def getTotalMagazineCount(selectedWeapon):
@@ -67,7 +67,7 @@ def getReportArray(selectedWeapon, magazineCount, newDummy):
         magazineString = "Magazine " + str(n) + ": "
         while selectedWeapon.currentAmmo > 0:
             selectedWeapon.fireShot(False)
-            result = hitCalculations.simpleHit(selectedWeapon, newDummy.distance, False)
+            result = hitCalculations.simpleHit(selectedWeapon, newDummy, False)
             if result == 1:
                 hits += 1
                 magDamage += selectedWeapon.damage

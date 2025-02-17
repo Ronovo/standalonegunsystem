@@ -19,7 +19,6 @@ while 1:
         case '2':
             range.rangeMain()
         case '3':
-            #create Bulk Report
             bulk.bulkShots()
         case '4':
             quit()

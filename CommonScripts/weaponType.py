@@ -1,4 +1,3 @@
-from Objects import weapons
 from Presets import weapons_preset
 
 weaponTypes = ['Small Arms', 'Medium Arms', 'Large Arms']
@@ -37,9 +36,7 @@ def getSelectedWeapon():
     if w != 0:
         wName = weaponList[w - 1]
         selectedWeapon = weapons_preset.getWeaponByName(wName)
-        print("Weapon Selected: " + selectedWeapon.name)
         selectedWeapon.reload()
-        mode = 'Single Shot'
         return selectedWeapon
 
 def selectWeaponMenu(weaponList):

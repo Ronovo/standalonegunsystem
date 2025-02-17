@@ -1,6 +1,4 @@
 import random
-import json
-from tkinter import END
 
 
 def roll(number):
@@ -11,7 +9,7 @@ def roll(number):
 # Check Against Base Accuracy
 # Factors:
 # Distance
-def simpleHit(selectedWeapon, distance, debug):
+def simpleHit(selectedWeapon, newDummy, debug):
     #Initial roll 1-100
     baseResult = roll(100)
     if debug:
@@ -22,25 +20,40 @@ def simpleHit(selectedWeapon, distance, debug):
     if selectedWeapon.weaponType.className == "Sniper":
         isSniper = True
 
+    # Calculate : RANGE BONUS
+    # Check Dummy Distance Against Range of Gun
     # Close Range Bonus
-    if distance < rangeM:
-        closeRange = rangeM - distance
+    if newDummy.distance < rangeM:
+        closeRange = rangeM - newDummy.distance
         y = closeRange // 50
         # This Check Makes Sure that Sniper at Max Range doesn't get insane bonus
         if isSniper and y > 3:
             y = 4
         for x in range(0, y):
             baseResult -= 5
-        #print("Base Result w/ Close Range Bonus = " + str(baseResult))
     # Long Range Penalty
-    elif distance > rangeM:
-        farRange = distance - rangeM
+    elif newDummy.distance > rangeM:
+        farRange = newDummy.distance - rangeM
         y = farRange // 50
         for x in range(0, y):
             baseResult += 10
-        #print("Base Result w/ Long Range Penalty = " + str(baseResult))
 
-    #print("Your weapons base accuracy is " + str(selectedWeapon.baseAccuracy) + " at " + str(selectedWeapon.rangeM) + "M")
+    if debug:
+        print("BaseResult w/ Range Modifier : " + str(baseResult))
+
+    # Calculate : DUMMY SIZE BONUS
+    # Check Dummy Size. Smaller the target, harder to hit, vice versa.
+    size = newDummy.size
+    match size:
+        case 's':
+            baseResult *= 1.15
+            if debug:
+                print(str(baseResult) + " after Dummy Size")
+        case 'l':
+            baseResult *= 0.85
+            if debug:
+                print(str(baseResult) + " after Dummy Size")
+
     if baseResult <= selectedWeapon.baseAccuracy:
         if debug:
             print("Hit!")

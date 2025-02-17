@@ -1,6 +1,5 @@
 import hitCalculations
 from CommonScripts import weaponType
-from Objects import weapons
 from Presets import dummy_preset, weapons_preset
 
 weaponList = []
@@ -13,18 +12,15 @@ def rangeMain():
     global destroyedDummy
     print("Welcome to the Gun Range!")
 
-    # Create Target Dummy
-    newDummy = dummy_preset.getNewDummy('m')
     # Begin Loop for Weapon Menu
     selectedWeapon = weaponType.getSelectedWeapon()
     if selectedWeapon is None:
         return
     # Ammo Count
     selectedWeapon.currentAmmo = selectedWeapon.maxAmmo
-    print("Ammo: " + str(selectedWeapon.currentAmmo) + "/" + str(selectedWeapon.maxAmmo))
-
     # Run Menu to set Initial Dummy Range
-    newDummy.setDummyRange(True)
+    # Create Target Dummy
+    newDummy = dummy_preset.getNewDummy(True)
 
     while 1:
         print("SHOOTING MENU")
@@ -63,7 +59,7 @@ def rangeMain():
             print("Do you want to set up a new dummy at the same range?\n")
             restart = input("1 for yes. Anything to leave.\n")
             if restart == '1':
-                newDummy = dummy_preset.getNewDummy('m')
+                newDummy = dummy_preset.getNewDummy(True)
                 destroyedDummy += 1
                 print('You have destroyed ' + str(destroyedDummy) + ' dummies.\n' )
             else:
@@ -110,7 +106,7 @@ def shootDummy(newDummy, selectedWeapon):
     while triggerPulls != 0:
         selectedWeapon.fireShot(True)
         triggerPulls -= 1
-        result = hitCalculations.simpleHit(selectedWeapon, newDummy.distance, True)
+        result = hitCalculations.simpleHit(selectedWeapon, newDummy, True)
         if result == 1:
             newDummy.takeDamage(selectedWeapon.damage)
             print("Dummy health is now " + str(newDummy.health) + "\n")
