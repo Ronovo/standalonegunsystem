@@ -43,5 +43,8 @@ class Dummy:
         if debug:
             print("Dummy has been set to range of " + str(dummyRange))
 
+    def setDummyRangeBalanceReport(self, distance):
+        self.distance = distance
+
 
 
