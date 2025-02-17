@@ -1,5 +1,6 @@
 class Dummy:
-    def __init__(self, health, distance):
+    def __init__(self, health, distance, size):
+        self.size = size
         self.health = health
         self.distance = distance
 
@@ -41,4 +42,6 @@ class Dummy:
         self.distance = dummyRange
         if debug:
             print("Dummy has been set to range of " + str(dummyRange))
+
+
 

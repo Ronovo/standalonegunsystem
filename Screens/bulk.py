@@ -1,7 +1,6 @@
 import hitCalculations
 from CommonScripts import weaponType
-from Objects import weapons
-from Objects.dummy import Dummy
+from Presets import dummy_preset
 
 weaponList = []
 mode = 'Single Shot'
@@ -21,7 +20,7 @@ def bulkShots():
 
 
     # Ask For Distance
-    newDummy = Dummy(200,0)
+    newDummy = dummy_preset.getNewDummy('m')
     newDummy.setDummyRange(False)
 
     reportArray = getReportArray(selectedWeapon, magazineCount, newDummy)

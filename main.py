@@ -17,7 +17,7 @@ while 1:
         case '1':
             armory.armoryMainMenu()
         case '2':
-            range.range()
+            range.rangeMain()
         case '3':
             #create Bulk Report
             bulk.bulkShots()

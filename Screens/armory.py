@@ -1,5 +1,6 @@
 from Objects import weapons
 from CommonScripts import weaponType
+from Presets import weapons_preset
 
 
 def armoryMainMenu():
@@ -17,4 +18,4 @@ def armoryMainMenu():
         if w == 0:
             return
         wName = weaponList[w - 1]
-        weapons.display(wName)
+        weapons_preset.display(wName)
