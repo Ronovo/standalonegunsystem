@@ -46,11 +46,11 @@ def simpleHit(selectedWeapon, newDummy, debug):
     size = newDummy.size
     match size:
         case 's':
-            baseResult *= 1.15
+            baseResult *= 1.08
             if debug:
                 print(str(baseResult) + " after Dummy Size")
         case 'l':
-            baseResult *= 0.85
+            baseResult *= 0.92
             if debug:
                 print(str(baseResult) + " after Dummy Size")
 
