@@ -2,9 +2,8 @@ from Screens import armory
 from Screens import range
 from Screens import bulk
 
-print("Welcome to Ronovo's Stand Alone Gun System")
-print("Designed to be plugged into text adventure games")
-print("\n")
+print("Welcome to Ronovo's Stand Alone Gun System\n")
+print("Designed to be plugged into text adventure games\n")
 while 1:
     print("MAIN MENU")
     print("----------")

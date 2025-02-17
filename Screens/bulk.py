@@ -1,5 +1,4 @@
-import hitCalculations
-from CommonScripts import weaponType
+from CommonScripts import weaponType, hitCalculations
 from Presets import dummy_preset
 
 weaponList = []
