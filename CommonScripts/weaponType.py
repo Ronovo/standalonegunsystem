@@ -1,7 +1,7 @@
-from Objects import weapons
+from Presets import weapons_preset
+
 weaponTypes = ['Small Arms', 'Medium Arms', 'Large Arms']
 
-#TODO Add Return to Weapon Type Menu When in that sub menu
 def weaponTypeMenu():
     weaponList = []
     print("Please select a weapon type:")
@@ -20,7 +20,7 @@ def weaponTypeMenu():
 
     # Get Weapon List
     if wType != '':
-        newlist = weapons.getWeaponListByWeaponType(wType)
+        newlist = weapons_preset.getWeaponListByWeaponType(wType)
         if len(newlist) != 0:
             for x in newlist:
                 weaponList.append(x.name)
@@ -35,10 +35,8 @@ def getSelectedWeapon():
     w = selectWeaponMenu(weaponList)
     if w != 0:
         wName = weaponList[w - 1]
-        selectedWeapon = weapons.getWeaponByName(wName)
-        print("Weapon Selected: " + selectedWeapon.name)
+        selectedWeapon = weapons_preset.getWeaponByName(wName)
         selectedWeapon.reload()
-        mode = 'Single Shot'
         return selectedWeapon
 
 def selectWeaponMenu(weaponList):

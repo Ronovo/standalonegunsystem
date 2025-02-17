@@ -1,32 +1,26 @@
 import hitCalculations
 from CommonScripts import weaponType
-from Objects import weapons
-from Objects.dummy import Dummy
+from Presets import dummy_preset, weapons_preset
 
 weaponList = []
 mode = 'Single Shot'
 destroyedDummy = 0
 
 
-def range():
+def rangeMain():
     global mode
     global destroyedDummy
     print("Welcome to the Gun Range!")
 
-    # Create Target Dummy
-    newDummy = Dummy(200,0)
-
     # Begin Loop for Weapon Menu
     selectedWeapon = weaponType.getSelectedWeapon()
-
     if selectedWeapon is None:
         return
     # Ammo Count
     selectedWeapon.currentAmmo = selectedWeapon.maxAmmo
-    print("Ammo: " + str(selectedWeapon.currentAmmo) + "/" + str(selectedWeapon.maxAmmo))
-
     # Run Menu to set Initial Dummy Range
-    newDummy.setDummyRange(True)
+    # Create Target Dummy
+    newDummy = dummy_preset.getNewDummy(True)
 
     while 1:
         print("SHOOTING MENU")
@@ -54,7 +48,7 @@ def range():
                 print("Current Ammo is : " + str(selectedWeapon.currentAmmo))
                 print("Weapon is reloaded!")
             case '5':
-                weapons.rangeDisplay(selectedWeapon)
+                weapons_preset.rangeDisplay(selectedWeapon)
             case '6':
                 selectedWeapon = weaponType.getSelectedWeapon()
             case '7':
@@ -65,7 +59,7 @@ def range():
             print("Do you want to set up a new dummy at the same range?\n")
             restart = input("1 for yes. Anything to leave.\n")
             if restart == '1':
-                newDummy.health = 200
+                newDummy = dummy_preset.getNewDummy(True)
                 destroyedDummy += 1
                 print('You have destroyed ' + str(destroyedDummy) + ' dummies.\n' )
             else:
@@ -75,7 +69,7 @@ def range():
 def setGlobalFireMode(selectedWeapon):
     n = 1
     for x in selectedWeapon.fireMode:
-        fireModeValue = weapons.returnFireMode(x)
+        fireModeValue = weapons_preset.returnFireMode(x)
         print(str(n) + '.) ' + fireModeValue)
         n += 1
     endIndex = n - 1
@@ -89,7 +83,7 @@ def setGlobalFireMode(selectedWeapon):
         modeabbr = selectedWeapon.fireMode[i]
         # sets Global Fire Mode
         global mode
-        mode = weapons.returnFireMode(modeabbr)
+        mode = weapons_preset.returnFireMode(modeabbr)
         return
     else:
         print("Invalid Selection; Fire Mode not set")
@@ -112,7 +106,7 @@ def shootDummy(newDummy, selectedWeapon):
     while triggerPulls != 0:
         selectedWeapon.fireShot(True)
         triggerPulls -= 1
-        result = hitCalculations.simpleHit(selectedWeapon, newDummy.distance, True)
+        result = hitCalculations.simpleHit(selectedWeapon, newDummy, True)
         if result == 1:
             newDummy.takeDamage(selectedWeapon.damage)
             print("Dummy health is now " + str(newDummy.health) + "\n")
