@@ -21,35 +21,7 @@ def bulkShots():
     # Ask For Distance
     newDummy = dummy_preset.getNewDummy(False)
 
-    #Result = [MagazineArray, TotalArray]
-    #Each Array has Hits,Misses,Dummies Destroyed, and Damage, in order
-    reportResult = getReport(selectedWeapon, magazineCount, newDummy)
-
-    #Print Report Per Magazine
-    magazineArray = reportResult[0]
-    print("Breakdown by Magazine")
-    print("--------------------")
-    for x in magazineArray:
-        print(x)
-    print("")
-    #Get Total Variables
-    totalArray = reportResult[1]
-    totalHits = totalArray[0]
-    totalMiss = totalArray[1]
-    totalShots = totalHits + totalMiss
-    totalDummy = totalArray[2]
-    totalDamage = totalArray[3]
-
-    #Calculate Accuracy
-    accuracy = totalHits / totalShots
-    accuracy *= 100
-    accuracy = round(accuracy, 2)
-
-    print("Totals for All Shots")
-    print("--------------------")
-    print(str(accuracy) + "% Accuracy / " + str(totalDummy) + " Dummies Destroyed / "
-          + str(totalDamage) + " Damage Done")
-    print("")
+    exportReport(selectedWeapon,magazineCount,newDummy)
 
 
 def getTotalMagazineCount(selectedWeapon):
@@ -128,3 +100,34 @@ def getReport(selectedWeapon, magazineCount, newDummy):
     # 1. Total Array - List of Total Stats for report
     result = [magazineArray,totalArray]
     return result
+
+def exportReport(selectedWeapon, magazineCount, newDummy):
+    # Result = [MagazineArray, TotalArray]
+    # Each Array has Hits,Misses,Dummies Destroyed, and Damage, in order
+    reportResult = getReport(selectedWeapon, magazineCount, newDummy)
+
+    # Print Report Per Magazine
+    magazineArray = reportResult[0]
+    print("Breakdown by Magazine")
+    print("--------------------")
+    for x in magazineArray:
+        print(x)
+    print("")
+    # Get Total Variables
+    totalArray = reportResult[1]
+    totalHits = totalArray[0]
+    totalMiss = totalArray[1]
+    totalShots = totalHits + totalMiss
+    totalDummy = totalArray[2]
+    totalDamage = totalArray[3]
+
+    # Calculate Accuracy
+    accuracy = totalHits / totalShots
+    accuracy *= 100
+    accuracy = round(accuracy, 2)
+
+    print("Totals for All Shots")
+    print("--------------------")
+    print(str(accuracy) + "% Accuracy / " + str(totalDummy) + " Dummies Destroyed / "
+          + str(totalDamage) + " Damage Done")
+    print("------------------------------------\n")
