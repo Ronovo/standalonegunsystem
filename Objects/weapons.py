@@ -1,6 +1,3 @@
-from tkinter import *
-
-
 class Preset:
     def __init__(self, name, maxAmmo, currentAmmo, damage, rangeM, baseAccuracy, weaponType, fireMode):
         self.name = name
@@ -15,9 +12,10 @@ class Preset:
     def reload(self):
         self.currentAmmo = self.maxAmmo
 
-    def fireShot(self):
+    def fireShot(self, debug):
         self.currentAmmo -= 1
-        print("Your weapon now has " + str(self.currentAmmo) + " bullets.")
+        if debug:
+            print("Your weapon now has " + str(self.currentAmmo) + " bullets.")
 
 class WeaponType:
     def __init__(self, className, type):

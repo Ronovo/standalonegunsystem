@@ -1,20 +1,20 @@
 from Objects import weapons
-choices = ['Small Arms', 'Medium Arms', 'Large Arms']
+weaponTypes = ['Small Arms', 'Medium Arms', 'Large Arms']
 
 #TODO Add Return to Weapon Type Menu When in that sub menu
-def weaponTypeMenu(weaponList):
+def weaponTypeMenu():
+    weaponList = []
     print("Please select a weapon type:")
     print("----------------------")
-    print("1.) " + choices[0])
-    print("2.) " + choices[1])
-    print("3.) " + choices[2])
+    print("1.) " + weaponTypes[0])
+    print("2.) " + weaponTypes[1])
+    print("3.) " + weaponTypes[2])
     answer = input("Pick 1-3\n")
     print("\n")
     wType = ''
     if 0 < int(answer) < 4:
-        weaponList = []
-        choiceIndex = int(answer) - 1
-        wType = choices[choiceIndex]
+        weaponTypesIndex = int(answer) - 1
+        wType = weaponTypes[weaponTypesIndex]
     else:
         print("Incorrect choice. Returning to Menu")
 
@@ -25,6 +25,21 @@ def weaponTypeMenu(weaponList):
             for x in newlist:
                 weaponList.append(x.name)
     return weaponList
+
+def getSelectedWeapon():
+    weaponList = weaponTypeMenu()
+    if weaponList == []:
+        return
+    print("Here are all weapons for type. Select one for more info!")
+    print("----------------------")
+    w = selectWeaponMenu(weaponList)
+    if w != 0:
+        wName = weaponList[w - 1]
+        selectedWeapon = weapons.getWeaponByName(wName)
+        print("Weapon Selected: " + selectedWeapon.name)
+        selectedWeapon.reload()
+        mode = 'Single Shot'
+        return selectedWeapon
 
 def selectWeaponMenu(weaponList):
     wFlag = True

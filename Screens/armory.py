@@ -1,14 +1,12 @@
 from Objects import weapons
 from CommonScripts import weaponType
-weaponList = []
 
 
 def armoryMainMenu():
-    global weaponList
     print("\n")
     print("Welcome to the Armory!")
-    weaponList = weaponType.weaponTypeMenu(weaponList)
-    if weaponList == None:
+    weaponList = weaponType.weaponTypeMenu()
+    if len(weaponList) == 0:
         return
     # Begin Loop for Weapon Menu
     print("Here are all weapons for type. Select one for more info!")

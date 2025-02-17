@@ -11,12 +11,12 @@ def roll(number):
 # Check Against Base Accuracy
 # Factors:
 # Distance
-def simpleHit(selectedWeapon, dummy):
+def simpleHit(selectedWeapon, distance, debug):
     #Initial roll 1-100
     baseResult = roll(100)
-    print("Base Roll = " + str(baseResult))
+    if debug:
+        print("Base Roll = " + str(baseResult))
     #Initial Variables for Caluculation
-    distance = int(dummy["distance"])
     rangeM = int(selectedWeapon.rangeM)
     isSniper = False
     if selectedWeapon.weaponType.className == "Sniper":
@@ -42,8 +42,10 @@ def simpleHit(selectedWeapon, dummy):
 
     #print("Your weapons base accuracy is " + str(selectedWeapon.baseAccuracy) + " at " + str(selectedWeapon.rangeM) + "M")
     if baseResult <= selectedWeapon.baseAccuracy:
-        print("Hit!")
+        if debug:
+            print("Hit!")
         return 1
     else:
-        print("Miss!")
+        if debug:
+            print("Miss!")
         return 0
