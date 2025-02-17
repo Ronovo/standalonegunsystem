@@ -20,19 +20,21 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
   - Once there, run "python ./main.py"
 ### 4.) Game should start in your terminal window
 
-## V1.0 Features:
+## V1.1 Features:
 - Armory Menu to look at all your guns!
 - Gun Range to test out all your guns!
+  - **NEW!** Bulk Fire report to test weapon balancing
   - Dynamic hit calculation based on Target Distance and Gun Type!
   - Counter to keep track of how many Dummies you have destroyed in the session!
 - 19 Guns, with 6 different weapon types! (See List Below!)
   - Guns have variable fire rate, where applicable. 
 
 ## Future Updates
-- More Guns!
-- Persistant Progress/Proficency Bonus
-- More Precise Calculations
+- More Guns!!!!
 - Different types of targets (Light, Medium, Heavy)
+- More Stats in the report (Total Damage, accuracy percent, etc)
+- More Precise Calculations
+  -Spray, Wind, Target Size, and more! 
 
 ## Gun List
 ### Pistols (Small Arms)
