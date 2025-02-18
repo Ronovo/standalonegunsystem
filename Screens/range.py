@@ -34,10 +34,10 @@ def rangeMain():
         answer = input("Pick 1-7\n")
         match answer:
             case '1':
-                newDummy = shootDummy(newDummy, selectedWeapon)
+                newDummy = shootDummy(newDummy, selectedWeapon, mode)
             case '2':
                 print('Current Fire Mode is ' + mode)
-                setGlobalFireMode(selectedWeapon)
+                mode = weaponType.setFireMode(selectedWeapon)
                 print('New Fire Mode is ' + mode)
             case '3':
                 newDummy.setDummyRange(True)
@@ -64,32 +64,9 @@ def rangeMain():
             else:
                 break
 
-
-def setGlobalFireMode(selectedWeapon):
-    n = 1
-    for x in selectedWeapon.fireMode:
-        fireModeValue = weapons_preset.returnFireMode(x)
-        print(str(n) + '.) ' + fireModeValue)
-        n += 1
-    endIndex = n - 1
-    print(str(n) + '.) Return to Shooting Menu')
-    fireModeAnswer = input("Pick 1 - " + str(n) + '\n')
-    intFM = int(fireModeAnswer)
-    if intFM == n:
-        return
-    if intFM > 0 and intFM < (endIndex + 1):
-        i = intFM - 1
-        modeabbr = selectedWeapon.fireMode[i]
-        # sets Global Fire Mode
-        global mode
-        mode = weapons_preset.returnFireMode(modeabbr)
-        return
-    else:
-        print("Invalid Selection; Fire Mode not set")
-        return
-
-def shootDummy(newDummy, selectedWeapon):
+def shootDummy(newDummy, selectedWeapon, fireMode):
     triggerPulls = 1
+    shots = 0
     if selectedWeapon.currentAmmo == 0:
         print("Out of Ammo! Try Reloading")
         return newDummy
@@ -105,14 +82,22 @@ def shootDummy(newDummy, selectedWeapon):
     while triggerPulls != 0:
         selectedWeapon.fireShot(True)
         triggerPulls -= 1
-        result = hitCalculations.calculateHit(selectedWeapon, newDummy, True)
-        if result == 1:
-            newDummy.takeDamage(selectedWeapon.damage)
+        if fireMode != "Fully Automatic":
+            if fireMode == "3 Round Burst":
+                if shots == 3:
+                    shots = 0
+            else:
+                shots = 0
+        shots += 1
+        result = hitCalculations.calculateHit(selectedWeapon, newDummy, shots, True)
+        if result[0] == 1:
+            newDummy.takeDamage(result[1])
             print("Dummy health is now " + str(newDummy.health) + "\n")
         else:
             print("\n")
         if newDummy.health <= 0:
             print("Dummy destroyed!")
             break
+
     return newDummy
 

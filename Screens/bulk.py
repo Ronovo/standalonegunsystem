@@ -20,8 +20,8 @@ def bulkShots():
 
     # Ask For Distance
     newDummy = dummy_preset.getNewDummy(False)
-
-    exportReport(selectedWeapon,magazineCount,newDummy)
+    fireMode = weaponType.setFireMode(selectedWeapon)
+    exportReport(selectedWeapon,magazineCount,newDummy, fireMode)
 
 
 def getTotalMagazineCount(selectedWeapon):
@@ -49,7 +49,7 @@ def getTotalMagazineCount(selectedWeapon):
     results = [magazineCount,selectedWeapon]
     return results
 
-def getReport(selectedWeapon, magazineCount, newDummy):
+def getReport(selectedWeapon, magazineCount, newDummy, fireMode):
     # Variables needed to build final report
     n = 1
     magazineArray = []
@@ -57,6 +57,7 @@ def getReport(selectedWeapon, magazineCount, newDummy):
     totalMisses = 0
     totalDamage = 0
     totalDummy = 0
+    totalCrits = 0
 
     #Loop through Bullets Selected (Ammo in Gun + magazine Count)
     #Magazine Outer Loop - Total magazines
@@ -66,16 +67,24 @@ def getReport(selectedWeapon, magazineCount, newDummy):
         misses = 0
         deadDummy = 0
         magDamage = 0
+        crits = 0
+        shots = 0
         magazineString = "Magazine " + str(n) + ": "
         #Magazine Inner Loop - Bullets in Gun
         while selectedWeapon.currentAmmo > 0:
             selectedWeapon.fireShot(False)
-            result = hitCalculations.calculateHit(selectedWeapon, newDummy, False)
-            if result == 1:
+            shots += 1
+            result = hitCalculations.calculateHit(selectedWeapon, newDummy, shots, False)
+            hit = result[0]
+            damage = result[1]
+            isCritical = result[2]
+            if hit == 1:
+                if isCritical:
+                    crits += 1
                 hits += 1
-                magDamage += selectedWeapon.damage
-                newDummy.takeDamage(selectedWeapon.damage)
-                totalDamage += selectedWeapon.damage
+                magDamage += damage
+                newDummy.takeDamage(damage)
+                totalDamage += damage
                 if newDummy.health <= 0:
                     deadDummy += 1
                     newDummy.health = 200
@@ -85,10 +94,14 @@ def getReport(selectedWeapon, magazineCount, newDummy):
         totalHits += hits
         totalMisses += misses
         totalDummy += deadDummy
+        totalCrits += crits
         if magazineCount > 0:
             selectedWeapon.reload()
         magazineString = (magazineString + str(hits) + " Hits / " + str(misses) + " Misses / "
                           + str(deadDummy) + " Dummies Destroyed / " + str(magDamage) + " Damage Done")
+        if crits > 0:
+            magazineString = magazineString + "/ Critical Hits : " + str(crits)
+
         magazineArray.append(magazineString)
         n += 1
 
@@ -101,10 +114,11 @@ def getReport(selectedWeapon, magazineCount, newDummy):
     result = [magazineArray,totalArray]
     return result
 
-def exportReport(selectedWeapon, magazineCount, newDummy):
+def exportReport(selectedWeapon, magazineCount, newDummy, fireMode):
     # Result = [MagazineArray, TotalArray]
     # Each Array has Hits,Misses,Dummies Destroyed, and Damage, in order
-    reportResult = getReport(selectedWeapon, magazineCount, newDummy)
+
+    reportResult = getReport(selectedWeapon, magazineCount, newDummy, fireMode)
 
     # Print Report Per Magazine
     magazineArray = reportResult[0]

@@ -49,7 +49,6 @@ def selectWeaponMenu(weaponList):
             n += 1
         print(str(n) + ".) Return to Main Menu")
         answer = input("Pick 1-" + str(n) + "\n")
-        print("\n")
         if answer == str(n):
             w = 0
             wFlag = False
@@ -60,3 +59,25 @@ def selectWeaponMenu(weaponList):
             except ValueError:
                 print("Please enter a valid number")
     return w
+
+def setFireMode(selectedWeapon):
+    n = 1
+    for x in selectedWeapon.fireMode:
+        fireModeValue = weapons_preset.returnFireMode(x)
+        print(str(n) + '.) ' + fireModeValue)
+        n += 1
+    endIndex = n - 1
+    print(str(n) + '.) Return to Shooting Menu')
+    fireModeAnswer = input("Pick 1 - " + str(n) + '\n')
+    intFM = int(fireModeAnswer)
+    if intFM == n:
+        return
+    if intFM > 0 and intFM < (endIndex + 1):
+        i = intFM - 1
+        modeabbr = selectedWeapon.fireMode[i]
+        # sets Global Fire Mode
+        mode = weapons_preset.returnFireMode(modeabbr)
+        return mode
+    else:
+        print("Invalid Selection; Fire Mode not set")
+        return
