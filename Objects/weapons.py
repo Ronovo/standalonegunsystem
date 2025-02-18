@@ -1,10 +1,11 @@
 class Preset:
-    def __init__(self, name, maxAmmo, currentAmmo, damage, rangeM, baseAccuracy, weaponType, fireMode):
+    def __init__(self, name, maxAmmo, currentAmmo, damage, rangeM, maxRange, baseAccuracy, weaponType, fireMode):
         self.name = name
         self.maxAmmo = maxAmmo
         self.currentAmmo = currentAmmo
         self.damage = damage
         self.rangeM = rangeM
+        self.maxRange = maxRange
         self.baseAccuracy = baseAccuracy
         self.weaponType = weaponType
         self.fireMode = fireMode

@@ -2,7 +2,7 @@ from Objects import weapons
 from CommonScripts import weaponType
 from Presets import weapons_preset
 
-
+## TODO Add WeaponType Submenu to Armory
 def armoryMainMenu():
     print("\n")
     print("Welcome to the Armory!")
@@ -18,4 +18,4 @@ def armoryMainMenu():
         if w == 0:
             return
         wName = weaponList[w - 1]
-        weapons_preset.display(wName)
+        weapons_preset.armoryDisplay(wName)
