@@ -105,7 +105,7 @@ def shootDummy(newDummy, selectedWeapon):
     while triggerPulls != 0:
         selectedWeapon.fireShot(True)
         triggerPulls -= 1
-        result = hitCalculations.simpleHit(selectedWeapon, newDummy, True)
+        result = hitCalculations.calculateHit(selectedWeapon, newDummy, True)
         if result == 1:
             newDummy.takeDamage(selectedWeapon.damage)
             print("Dummy health is now " + str(newDummy.health) + "\n")

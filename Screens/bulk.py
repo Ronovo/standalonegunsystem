@@ -70,7 +70,7 @@ def getReport(selectedWeapon, magazineCount, newDummy):
         #Magazine Inner Loop - Bullets in Gun
         while selectedWeapon.currentAmmo > 0:
             selectedWeapon.fireShot(False)
-            result = hitCalculations.simpleHit(selectedWeapon, newDummy, False)
+            result = hitCalculations.calculateHit(selectedWeapon, newDummy, False)
             if result == 1:
                 hits += 1
                 magDamage += selectedWeapon.damage

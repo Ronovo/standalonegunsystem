@@ -2,7 +2,7 @@ from Objects import weapons
 from CommonScripts import weaponType
 from Presets import weapons_preset
 
-
+## TODO Add WeaponType Submenu to Armory
 def armoryMainMenu():
     print("\n")
     print("Welcome to the Armory!")

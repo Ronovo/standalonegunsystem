@@ -8,8 +8,8 @@ def roll(number):
 # Base 100 Roll.
 # Check Against Base Accuracy
 # Factors:
-# Distance
-def simpleHit(selectedWeapon, newDummy, debug):
+# Distance, Dummy Size
+def calculateHit(selectedWeapon, newDummy, debug):
     #Initial roll 1-100
     baseResult = roll(100)
     if debug:
@@ -23,6 +23,7 @@ def simpleHit(selectedWeapon, newDummy, debug):
     # Calculate : RANGE BONUS
     # Check Dummy Distance Against Range of Gun
     # Close Range Bonus
+    # TODO : Refactor with new MaxRange Stat on weapon
     if newDummy.distance < rangeM:
         closeRange = rangeM - newDummy.distance
         y = closeRange // 50
@@ -53,6 +54,8 @@ def simpleHit(selectedWeapon, newDummy, debug):
             baseResult *= 0.92
             if debug:
                 print(str(baseResult) + " after Dummy Size")
+
+    # Calculate : Bullet Drop
 
     if baseResult <= selectedWeapon.baseAccuracy:
         if debug:
