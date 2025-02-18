@@ -18,4 +18,4 @@ def armoryMainMenu():
         if w == 0:
             return
         wName = weaponList[w - 1]
-        weapons_preset.display(wName)
+        weapons_preset.armoryDisplay(wName)

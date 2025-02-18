@@ -75,26 +75,24 @@ def buildFireModeString(selected):
             fireModeString += ', '
     return fireModeString
 
-
-def display(name):
-    selected = getWeaponByName(name)
+def armoryDisplay(weaponName):
+    selected = getWeaponByName(weaponName)
     print("\nYou have selected " + selected.name)
-    print("Max Ammo: " + str(selected.maxAmmo) + " | " + "Damage: " + str(selected.damage))
-    print("Base Range(In Meters): " + str(selected.rangeM) + " | " + "Base Accuracy: " + str(selected.baseAccuracy))
-    print("Max Range (In Meters): " + str(selected.maxRange))
-    weaponType = selected.weaponType
-    print("Class: " + str(weaponType.className) + " | " + "Weapon Type: " + str(weaponType.type))
-    fireModeString = buildFireModeString(selected)
-    print("Fire Modes : " + fireModeString+ "\n")
+    display(selected)
+    print("")
     input("Press any key to return to weapon select\n")
 
-## TODO Refactor this and the armory above to make it extendable to the class
 def rangeDisplay(weapon):
     print("\nYour current weapon is " + weapon.name)
-    print("Max Ammo: " + str(weapon.maxAmmo) + " | " + "Damage: " + str(weapon.damage))
-    print("Range(In Meters): " + str(weapon.rangeM) + " | " + "Base Accuracy: " + str(weapon.baseAccuracy))
-    print("Max Range : " + str(weapon.maxRange))
-    weaponType = weapon.weaponType
-    print("Class: " + str(weaponType.className) + " | " + "Weapon Type: " + str(weaponType.type))
+    display(weapon)
     print("Current Ammo : " + str(weapon.currentAmmo) + "\n")
     input("Press any key to return to Shooting Menu\n")
+
+def display(selectedWeapon):
+    print("Max Ammo: " + str(selectedWeapon.maxAmmo) + " | " + "Damage: " + str(selectedWeapon.damage))
+    print("Base Range(In Meters): " + str(selectedWeapon.rangeM) + " | " + "Base Accuracy: " + str(selectedWeapon.baseAccuracy))
+    print("Max Range (In Meters): " + str(selectedWeapon.maxRange))
+    weaponType = selectedWeapon.weaponType
+    print("Class: " + str(weaponType.className) + " | " + "Weapon Type: " + str(weaponType.type))
+    fireModeString = buildFireModeString(selectedWeapon)
+    print("Fire Modes : " + fireModeString)
