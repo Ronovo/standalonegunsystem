@@ -20,7 +20,7 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
   - Once there, run "python ./main.py"
 ### 4.) Game should start in your terminal window
 
-## V1.4 Features
+## V1.5 Features
 - Hit Calculation
   - Dummy Size, Damage Drop off, "Bullet Drop", Muzzle Spray, Critical Chance
 - Armory Menu to look at all your guns!
@@ -35,7 +35,7 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
         - Each Type of Dummy
         - Every Range listed in the Range Menu
         - For Each Firing Mode (Single, 3 Round, Auto)
-- 19 Guns, with 6 different weapon types! (See List Below!)
+- 25 Guns, with 6 different weapon types! (See List Below!)
 
 ## Future Updates
 - More Guns!!!!
@@ -46,6 +46,9 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
 - USP. 45
 - M9
 - Desert Eagle
+- Glock 18
+- .38 Special
+- 44 Magnum
 
 ### SMG (Small Arms)
 - MP5
@@ -56,11 +59,14 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
 ### Shotguns (Medium Arms)
 - W1200
 - M1014
+- USAS-12
 
 ### ARs (Medium Arms)
 - M16A4
 - AK47
 - G3
+- G36
+- FN FAL
 
 ### Snipers(Heavy Arms)
 - M40A3
