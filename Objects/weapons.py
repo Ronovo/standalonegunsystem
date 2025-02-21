@@ -26,6 +26,19 @@ class Preset:
                 shells -= 1
                 self.currentAmmo += 1
                 print("One shell loaded. " + str(shells) + " remaining")
+        #Revolver reload logic
+        if self.name == "44 Magnum" or self.name == ".38 Special":
+            print("Revolvers unload when reloaded and must be manually loaded")
+            print("----------------------------------------------------------")
+            if self.currentAmmo != 0:
+                self.currentAmmo = 0
+                print("Gun unloaded")
+            bullets = self.maxAmmo
+            while bullets != 0:
+                input("Press any button to load a bullet.")
+                self.currentAmmo += 1
+                bullets -= 1
+                print("One bullet loaded. " + str(bullets) + " remaining")
         #Load by Magazine
         else:
             self.currentAmmo = self.maxAmmo
