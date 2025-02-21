@@ -41,16 +41,16 @@ def calculateHit(selectedWeapon, newDummy, shots, debug):
     # CALCULATE : Bullet Spray
     # 3 Round Burst = Minimal Penalty
     # Every Shot after 3, penalty goes up on a scale
-    if 1 < shots <= 4:
-        baseResult = baseResult * 2
-    elif 4 < shots <= 7:
-        baseResult = baseResult * 4
-    elif 7 < shots <= 10:
-        baseResult = baseResult * 8
-    elif 10 < shots <= 30:
+    if 1 < shots < 4:
+        baseResult = baseResult * 3
+    elif 4 <= shots <= 7:
         baseResult = baseResult * 10
+    elif 7 < shots <= 10:
+        baseResult = baseResult * 25
+    elif 10 < shots <= 30:
+        baseResult = baseResult * 150
     elif 30 < shots <= 100:
-        baseResult = baseResult * 20
+        baseResult = baseResult * 300
     if (shots > 1 and debug):
         print("Base Result w/ Bullet Spray : " + str(baseResult))
 
@@ -95,6 +95,10 @@ def getDummyRangeModifier(newDummy, rangeM, isSniper, baseResult):
             y = 4
         for x in range(0, y):
             baseResult -= 5
+            if baseResult < 0:
+                # Stops the hit from being subtracted to a miss by bonus
+                baseResult = 0
+
     # Long Range Penalty
     elif newDummy.distance > rangeM:
         farRange = newDummy.distance - rangeM
