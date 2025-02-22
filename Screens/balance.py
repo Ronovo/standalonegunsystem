@@ -38,7 +38,7 @@ def balanceReport():
             os.makedirs(weaponPath)
 
         #Load the selected weapon
-        selectedWeapon.reload()
+        selectedWeapon.reload(True)
         if len(selectedWeapon.fireMode) > 1:
             for x in selectedWeapon.fireMode:
                 fireModeValue = weapons_preset.returnFireMode(x)
@@ -60,7 +60,7 @@ def runCalculationsOnDummy(newDummy, selectedWeapon, fireMode):
         print("------------------------------------\n")
         newDummy.setDummyRangeBalanceReport(nextRange)
         bulk.exportReport(selectedWeapon,3,newDummy,fireMode)
-        selectedWeapon.reload()
+        selectedWeapon.reload(True)
 
 def shootDummyBySize(selectedWeapon, weaponTypePath, fireModeValue):
     # Dummy Type Loop

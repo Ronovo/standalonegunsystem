@@ -98,7 +98,7 @@ def getReport(selectedWeapon, magazineCount, newDummy, fireMode):
         totalDummy += deadDummy
         totalCrits += crits
         if magazineCount > 0:
-            selectedWeapon.reload()
+            selectedWeapon.reload(True)
         magazineString = (magazineString + str(hits) + " Hits / " + str(misses) + " Misses / "
                           + str(deadDummy) + " Dummies Destroyed / " + str(magDamage) + " Damage Done")
         if crits > 0:

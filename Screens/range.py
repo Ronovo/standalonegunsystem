@@ -43,7 +43,7 @@ def rangeMain():
                 newDummy.setDummyRange(True)
             case '4':
                 print("Ammo before reload is : " + str(selectedWeapon.currentAmmo))
-                selectedWeapon.reload()
+                selectedWeapon.reload(False)
                 print("Current Ammo is : " + str(selectedWeapon.currentAmmo))
                 print("Weapon is reloaded!")
             case '5':

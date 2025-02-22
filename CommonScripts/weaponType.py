@@ -36,7 +36,7 @@ def getSelectedWeapon():
     if w != 0:
         wName = weaponList[w - 1]
         selectedWeapon = weapons_preset.getWeaponByName(wName)
-        selectedWeapon.reload()
+        selectedWeapon.reload(False)
         return selectedWeapon
 
 def selectWeaponMenu(weaponList):

@@ -10,36 +10,40 @@ class Preset:
         self.weaponType = weaponType
         self.fireMode = fireMode
 
-    def reload(self):
+    def reload(self, skipSpecial):
         #Load by cartridge except for Automatic Shotguns
-        if self.currentAmmo == self.maxAmmo:
-            print("Ammo already full. No need to reload")
-            return
+        if not skipSpecial:
+            if self.currentAmmo == self.maxAmmo:
+                print("Ammo already full. No need to reload")
+                return
 
-        #Shotgun Manual Reload check
-        if self.weaponType.className == "Shotgun" and self.name != "USAS-12":
-            print("Non-Automatic Shotguns need to be manually loaded.")
-            print("--------------------------------------------------")
-            shells = self.maxAmmo - self.currentAmmo
-            while shells != 0:
-                input("Press any button to load a shell")
-                shells -= 1
-                self.currentAmmo += 1
-                print("One shell loaded. " + str(shells) + " remaining")
-        #Revolver reload logic
-        if self.name == "44 Magnum" or self.name == ".38 Special":
-            print("Revolvers unload when reloaded and must be manually loaded")
-            print("----------------------------------------------------------")
-            if self.currentAmmo != 0:
-                self.currentAmmo = 0
-                print("Gun unloaded")
-            bullets = self.maxAmmo
-            while bullets != 0:
-                input("Press any button to load a bullet.")
-                self.currentAmmo += 1
-                bullets -= 1
-                print("One bullet loaded. " + str(bullets) + " remaining")
-        #Load by Magazine
+            # Shotgun Manual Reload check
+            if self.weaponType.className == "Shotgun" and self.name != "USAS-12":
+                print("Non-Automatic Shotguns need to be manually loaded.")
+                print("--------------------------------------------------")
+                shells = self.maxAmmo - self.currentAmmo
+                while shells != 0:
+                    input("Press any button to load a shell")
+                    shells -= 1
+                    self.currentAmmo += 1
+                    print("One shell loaded. " + str(shells) + " remaining")
+            # Revolver reload logic
+            if self.name == "44 Magnum" or self.name == ".38 Special":
+                print("Revolvers unload when reloaded and must be manually loaded")
+                print("----------------------------------------------------------")
+                if self.currentAmmo != 0:
+                    self.currentAmmo = 0
+                    print("Gun unloaded")
+                bullets = self.maxAmmo
+                while bullets != 0:
+                    input("Press any button to load a bullet.")
+                    self.currentAmmo += 1
+                    bullets -= 1
+                    print("One bullet loaded. " + str(bullets) + " remaining")
+            # Load by Magazine
+            else:
+                self.currentAmmo = self.maxAmmo
+        #Skip special interactions
         else:
             self.currentAmmo = self.maxAmmo
 
