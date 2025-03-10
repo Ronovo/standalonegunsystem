@@ -42,15 +42,15 @@ def calculateHit(selectedWeapon, newDummy, shots, debug):
     # 3 Round Burst = Minimal Penalty
     # Every Shot after 3, penalty goes up on a scale
     if 1 < shots < 4:
-        baseResult = baseResult * 3
+        baseResult = baseResult * 1.2
     elif 4 <= shots <= 7:
-        baseResult = baseResult * 10
+        baseResult = baseResult * 1.5
     elif 7 < shots <= 10:
-        baseResult = baseResult * 25
+        baseResult = baseResult * 2
     elif 10 < shots <= 30:
-        baseResult = baseResult * 150
+        baseResult = baseResult * 5
     elif 30 < shots <= 100:
-        baseResult = baseResult * 300
+        baseResult = baseResult * 10
     if (shots > 1 and debug):
         print("Base Result w/ Bullet Spray : " + str(baseResult))
 
@@ -63,7 +63,7 @@ def calculateHit(selectedWeapon, newDummy, shots, debug):
     # Final Calculation
     criticalHits = 0
     if 0 <= baseResult <= selectedWeapon.baseAccuracy:
-        if newDummy.distance > maxRangeM:
+        if newDummy.distance >= maxRangeM:
             damage = 0
         else:
             damage = getDamage(newDummy,rangeM,selectedWeapon.damage)

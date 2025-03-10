@@ -1,4 +1,4 @@
-from CommonScripts import weaponType, hitCalculations
+from CommonScripts import weaponType, hitCalculations, formatter
 from Presets import dummy_preset, weapons_preset
 
 weaponList = []
@@ -15,12 +15,13 @@ def rangeMain():
     selectedWeapon = weaponType.getSelectedWeapon()
     if selectedWeapon is None:
         return
+    formatter.clear()
     # Ammo Count
     selectedWeapon.currentAmmo = selectedWeapon.maxAmmo
     # Run Menu to set Initial Dummy Range
     # Create Target Dummy
     newDummy = dummy_preset.getNewDummy(True)
-
+    formatter.clear()
     while 1:
         print("SHOOTING MENU")
         print("----------")
@@ -32,12 +33,15 @@ def rangeMain():
         print("6.) Switch Weapons")
         print("7.) Quit to Main Menu\n")
         answer = input("Pick 1-7\n")
+        formatter.clear()
         match answer:
             case '1':
                 newDummy = shootDummy(newDummy, selectedWeapon, mode)
             case '2':
                 print('Current Fire Mode is ' + mode)
-                mode = weaponType.setFireMode(selectedWeapon)
+                newMode = weaponType.setFireMode(selectedWeapon)
+                if newMode is not None:
+                    mode = newMode
                 print('New Fire Mode is ' + mode)
             case '3':
                 newDummy.setDummyRange(True)
@@ -54,15 +58,20 @@ def rangeMain():
                 return
             case _:
                 print("Incorrect choice. Try again.")
+        input("Press any key to continue...")
+        formatter.clear()
         if newDummy.health <= 0:
+            print("DUMMY DESTROYED!")
+            destroyedDummy += 1
+            print('You have destroyed ' + str(destroyedDummy) + ' dummies.\n')
             print("Do you want to set up a new dummy at the same range?\n")
             restart = input("1 for yes. Anything to leave.\n")
+            formatter.clear()
             if restart == '1':
                 newDummy = dummy_preset.getNewDummy(True)
-                destroyedDummy += 1
-                print('You have destroyed ' + str(destroyedDummy) + ' dummies.\n' )
             else:
                 break
+
 
 def shootDummy(newDummy, selectedWeapon, fireMode):
     triggerPulls = 1

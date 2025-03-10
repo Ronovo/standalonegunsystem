@@ -1,4 +1,4 @@
-from CommonScripts import weaponType, hitCalculations
+from CommonScripts import weaponType, hitCalculations, formatter
 from Presets import dummy_preset
 
 weaponList = []
@@ -16,12 +16,15 @@ def bulkShots():
     results = getTotalMagazineCount(selectedWeapon)
     magazineCount = results[0]
     selectedWeapon = results[1]
-
+    formatter.clear()
 
     # Ask For Distance
     newDummy = dummy_preset.getNewDummy(False)
+    formatter.clear()
     fireMode = weaponType.setFireMode(selectedWeapon)
+    formatter.clear()
     exportReport(selectedWeapon,magazineCount,newDummy, fireMode)
+    input("Press any key to return to Main Menu...")
 
 
 def getTotalMagazineCount(selectedWeapon):

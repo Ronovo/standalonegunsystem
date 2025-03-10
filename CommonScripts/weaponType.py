@@ -1,3 +1,4 @@
+from CommonScripts import formatter
 from Presets import weapons_preset
 
 weaponTypes = ['Small Arms', 'Medium Arms', 'Large Arms']
@@ -10,7 +11,6 @@ def weaponTypeMenu():
     print("2.) " + weaponTypes[1])
     print("3.) " + weaponTypes[2])
     answer = input("Pick 1-3\n")
-    print("\n")
     wType = ''
     if 0 < int(answer) < 4:
         weaponTypesIndex = int(answer) - 1
@@ -30,7 +30,8 @@ def getSelectedWeapon():
     weaponList = weaponTypeMenu()
     if weaponList == []:
         return
-    print("Here are all weapons for type. Select one for more info!")
+    formatter.clear()
+    print("Weapons List")
     print("----------------------")
     w = selectWeaponMenu(weaponList)
     if w != 0:
@@ -38,6 +39,7 @@ def getSelectedWeapon():
         selectedWeapon = weapons_preset.getWeaponByName(wName)
         selectedWeapon.reload(False)
         return selectedWeapon
+    formatter.clear()
 
 def selectWeaponMenu(weaponList):
     wFlag = True

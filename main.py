@@ -1,11 +1,17 @@
+from CommonScripts import formatter
 from Screens import armory
 from Screens import range
 from Screens import bulk
 from Screens import balance
 
+formatter.clear()
 print("Welcome to Ronovo's Stand Alone Gun System\n")
 print("Designed to be plugged into text adventure games\n")
+wrong = False
 while 1:
+    if wrong:
+        print("Incorrect choice. Try again.\n")
+        wrong = False
     print("MAIN MENU")
     print("----------")
     print("1.) Armory - View Weapons In Detail")
@@ -14,6 +20,7 @@ while 1:
     print("4.) Run a Balance Report")
     print("5.) Quit\n")
     answer = input("Pick 1-5\n")
+    formatter.clear()
     match answer:
         case '1':
             armory.armoryMainMenu()
@@ -26,4 +33,5 @@ while 1:
         case '5':
             quit()
         case _:
-            print("Incorrect choice. Try again.")
+            wrong = True
+    formatter.clear()

@@ -1,19 +1,19 @@
 from Objects import weapons
-from CommonScripts import weaponType
+from CommonScripts import weaponType, formatter
 from Presets import weapons_preset
 
 ## TODO Add WeaponType Submenu to Armory
 def armoryMainMenu():
-    print("\n")
     print("Welcome to the Armory!")
     weaponList = weaponType.weaponTypeMenu()
     if len(weaponList) == 0:
         return
     # Begin Loop for Weapon Menu
-    print("Here are all weapons for type. Select one for more info!")
-    print("----------------------")
     flag = False
     while not flag:
+        formatter.clear()
+        print("Weapons List")
+        print("----------------------")
         w = weaponType.selectWeaponMenu(weaponList)
         if w == 0:
             return

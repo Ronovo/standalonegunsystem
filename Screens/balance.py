@@ -48,10 +48,10 @@ def balanceReport():
             shootDummyBySize(selectedWeapon, weaponTypePath, fireModeValue)
 
 
-
-
     #Reset Output to Console After we are done writing
     sys.stdout = sys.__stdout__
+    print("Report finished. You can find it in the repo's Balance Report Directory.")
+    input("Press any key to return to Main Menu...")
 
 def runCalculationsOnDummy(newDummy, selectedWeapon, fireMode):
     ranges = dummy_preset.getRanges()
