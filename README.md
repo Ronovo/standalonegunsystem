@@ -1,5 +1,5 @@
 # Stand Alone Gun System (Text-Based)
-Simple Weapons System built completely in Python. Ready to be ported into any game idea you can come up with!
+Simple weapons system built in Python. The `gunsystem` library can be imported into other games; this repo also includes a terminal range demo.
 
 <p float="left">
   <img src="Resources/MainMenu.png" width="250" />
@@ -9,16 +9,38 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
 
 ## Set Up and Run
 ### 1.) Requires Python to be installed
-  - Version used for this build : V3.13.2
+  - Requires Python 3.10 or newer
+  - Version used for this build: 3.13.2
   - Get [Python](https://www.python.org/downloads/) here.
   - Run the Installer
 
 ### 2.) Download the project (Through Git or File Download)
 
-### 3.) Navigate to file with Powershell/Command Prompt
-  - cd (drive)/(File Location)/standalonegamesystem
-  - Once there, run "python ./main.py"
+### 3.) Navigate to the project with Powershell/Command Prompt
+  - `cd (drive)/(File Location)/standalonegunsystem`
+  - Once there, run `python ./main.py`
+  - You can also run `python -m demo`
 ### 4.) Game should start in your terminal window
+
+## Using as a library
+From the repo (or with `gunsystem/` on your Python path):
+
+```python
+from gunsystem import Catalog, Target, resolve_shot
+
+gun = Catalog.create("M1911")
+gun.reload()
+result = resolve_shot(gun, Target(distance=100, size="m"))
+```
+
+`result` has `hit`, `damage`, `critical`, and `remaining_ammo`.
+
+## Tests
+From the repo root:
+
+```
+python -m unittest discover -s tests -t .
+```
 
 ## V1.5 Features
 - Hit Calculation
@@ -29,13 +51,13 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
   - Dynamic hit calculation based on Target Distance and Gun Type!
   - Counter to keep track of how many Dummies you have destroyed in the session!
   - Bulk Firing Options Per Gun
-- Balance Report Funcationality
+- Balance Report Functionality
     - Creates a report per weapon in /Balance Reports
     - Each Report includes stats for 3 Full Magazines shot at:
         - Each Type of Dummy
         - Every Range listed in the Range Menu
         - For Each Firing Mode (Single, 3 Round, Auto)
-- 25 Guns, with 6 different weapon types! (See List Below!)
+- 26 Guns, with 6 different weapon types! (See List Below!)
 
 ## Future Updates
 - More Guns!!!!
@@ -43,7 +65,7 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
 ## Gun List
 ### Pistols (Small Arms)
 - M1911
-- USP. 45
+- USP .45
 - M9
 - Desert Eagle
 - Glock 18
@@ -53,13 +75,14 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
 ### SMG (Small Arms)
 - MP5
 - AK-47u
-- p90
-- Mini Uzi
+- P90
+- Mini-Uzi
 
 ### Shotguns (Medium Arms)
 - W1200
 - M1014
 - USAS-12
+- Spas-12
 
 ### ARs (Medium Arms)
 - M16A4
@@ -68,12 +91,12 @@ Simple Weapons System built completely in Python. Ready to be ported into any ga
 - G36
 - FN FAL
 
-### Snipers(Heavy Arms)
+### Snipers (Large Arms)
 - M40A3
 - Dragunov
 - Barrett .50Cal
 
-### LMGs(Heavy Arms)
-- M249 Saw
+### LMGs (Large Arms)
+- M249 SAW
 - M60E4
 - RPD
