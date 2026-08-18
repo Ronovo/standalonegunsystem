@@ -1,3 +1,7 @@
 **/__pycache__
 **/.idea
 **/Balance Reports
+*.egg-info/
+dist/
+build/
+.venv/

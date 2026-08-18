@@ -1,0 +1,13 @@
+[project]
+name = "gunsystem"
+version = "1.5.0"
+description = "Standalone text-based gun system for games"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["gunsystem*"]
