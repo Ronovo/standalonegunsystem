@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import back_link, class_icon, menu_link %}
+{% block title %}Balance Report{% endblock %}
+{% block back %}{{ back_link(url_for('main.menu'), "Main menu") }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 class="panel-title">BALANCE REPORT</h1>
+  <p>This will fire {{ magazines }} magazines for every weapon and fire mode, at every dummy size and every range ({{ ranges|join(", ") }} m).</p>
+  <form method="post" class="menu-row" data-busy="Running the report… this takes a few seconds">
+    <button class="menu-item primary" data-key="1"><span class="key">1.)</span><span class="label">{{ "Run it again" if run else "Run balance report" }}</span></button>
+    <label class="chip"><input type="checkbox" name="write_files"> Also save text reports to <code>{{ report_dir }}/</code></label>
+  </form>
+  {% if run %}
+    <p class="muted">Last run finished at {{ run.finished }} in {{ run.seconds }} s.</p>
+    <ol class="menu">
+      {{ menu_link(2, url_for('main.balance_results'), "View detailed results", "Summary, filters and accuracy per magazine") }}
+    </ol>
+  {% endif %}
+</section>
+
+{% if rows %}
+<section class="panel">
+  <nav class="tabs" aria-label="Report filters">
+    <span class="caption">Dummy</span>
+    {% for name in sizes %}
+      <a class="chip{% if name == size %} active{% endif %}" href="{{ url_for('main.balance', size=name, metric=metric) }}">{{ name }}</a>
+    {% endfor %}
+    <span class="caption">Show</span>
+    {% for key, label in metrics.items() %}
+      <a class="chip{% if key == metric %} active{% endif %}" href="{{ url_for('main.balance', size=size, metric=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <div class="table-wrap">
+    <table class="data balance">
+      <thead>
+        <tr><th>Weapon</th><th>Mode</th>{% for distance in ranges %}<th class="num">{{ distance }} m</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          {% if loop.first or row.group != loop.previtem.group %}
+            <tr class="group"><th colspan="{{ ranges|length + 2 }}">{{ class_icon(row.group, "xs") }}{{ row.group }}</th></tr>
+          {% endif %}
+          <tr>
+            <td>{{ row.weapon }}</td>
+            <td class="muted">{{ row.mode }}</td>
+            {% for cell in row.ranges|map(attribute="total") %}
+              <td class="num {{ cell|accuracy_class }}" title="{{ cell.hits }}/{{ cell.shots }} hits · {{ cell.destroyed }} destroyed · {{ cell.damage }} damage">
+                {%- if metric == "accuracy" %}{{ "%.0f"|format(cell.accuracy) }}%{% else %}{{ cell[metric] }}{% endif -%}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted legend">Colour follows accuracy: <span class="acc-high">80%+</span> · <span class="acc-mid">50–79%</span> · <span class="acc-low">under 50%</span> · <span class="acc-zero">no hits</span>. Hover a cell for all three numbers.</p>
+</section>
+{% endif %}
+{% endblock %}

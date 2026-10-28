@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros.html" import back_link, weapon_menu %}
+{% block title %}Bulk Fire Report{% endblock %}
+{% block back %}{{ back_link(url_for('main.menu'), "Main menu") }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 class="panel-title">BULK FIRE REPORT</h1>
+  <p class="muted">Pick a weapon to test. Type two digits quickly for items past 9.</p>
+  {{ weapon_menu(groups, 'main.bulk_form') }}
+</section>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% from "_macros.html" import back_link, menu_link %}
+{% block title %}Report Results{% endblock %}
+{% block back %}{{ back_link(url_for('main.balance'), "Balance report") }}{% endblock %}
+{% block content %}
+{% if not run %}
+<section class="panel">
+  <h1 class="panel-title">REPORT RESULTS</h1>
+  <p>No balance report has been run yet.</p>
+  <ol class="menu">{{ menu_link(1, url_for('main.balance'), "Go to the balance report") }}</ol>
+</section>
+{% else %}
+<form method="get" class="panel">
+  <h1 class="panel-title">REPORT RESULTS</h1>
+  <p class="muted">Balance run finished at {{ run.finished }} · {{ magazines }} magazines per range.</p>
+  <div class="filters">
+    <label class="inline-field"><span class="key">1.)</span> Weapon
+      <select name="weapon" data-key="1" data-focus>
+        <option value="">All weapons</option>
+        {% for class_name, weapons in groups.items() %}
+          <optgroup label="{{ class_name }}">
+            {% for weapon in weapons %}
+              <option {% if weapon.name == filters.weapon %}selected{% endif %}>{{ weapon.name }}</option>
+            {% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="inline-field"><span class="key">2.)</span> Range
+      <select name="range" data-key="2" data-focus>
+        <option value="">All ranges</option>
+        {% for distance in ranges %}
+          <option value="{{ distance }}" {% if distance == filters.range %}selected{% endif %}>{{ distance }} m</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="inline-field"><span class="key">3.)</span> Dummy
+      <select name="size" data-key="3" data-focus>
+        <option value="">All sizes</option>
+        {% for name in sizes %}
+          <option {% if name == filters.size %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="chip active" data-key="4">4.) Apply</button>
+    <a class="chip" href="{{ url_for('main.balance_results') }}">Clear</a>
+  </div>
+</form>
+
+<section class="panel">
+  <h2 class="panel-title">SUMMARY</h2>
+  {% if count %}
+    <div class="tiles">
+      <div class="tile"><span class="caption">Results</span><strong>{{ count }}</strong></div>
+      <div class="tile"><span class="caption">Shots fired</span><strong>{{ summary.shots }}</strong></div>
+      <div class="tile"><span class="caption">Accuracy</span><strong class="{{ summary|accuracy_class }}">{{ summary.accuracy }}%</strong></div>
+      <div class="tile"><span class="caption">Critical hits</span><strong>{{ summary.crits }}</strong></div>
+      <div class="tile"><span class="caption">Dummies destroyed</span><strong>{{ summary.destroyed }}</strong></div>
+      <div class="tile"><span class="caption">Damage</span><strong>{{ summary.damage }}</strong></div>
+    </div>
+    <p class="meter">{{ summary.accuracy|round|int|bar(100, 40) }}</p>
+    {% if best %}
+      <p><span class="caption">Best</span>{{ best.weapon }} ({{ best.mode }}) vs {{ best.size|lower }} dummy at {{ best.distance }} m: <span class="{{ best.total|accuracy_class }}">{{ best.total.accuracy }}%</span></p>
+      <p><span class="caption">Worst</span>{{ worst.weapon }} ({{ worst.mode }}) vs {{ worst.size|lower }} dummy at {{ worst.distance }} m: <span class="{{ worst.total|accuracy_class }}">{{ worst.total.accuracy }}%</span></p>
+    {% endif %}
+    {% if no_hits %}<p class="muted">{{ no_hits }} result{{ "s" if no_hits != 1 }} landed no hits (out of range or zero damage) and are left out of best/worst.</p>{% endif %}
+  {% else %}
+    <p class="muted">No results match these filters.</p>
+  {% endif %}
+</section>
+
+{% if count %}
+<section class="panel">
+  <h2 class="panel-title">RESULTS · {{ start + 1 }}–{{ start + page_entries|length }} OF {{ count }}</h2>
+  <p class="muted">Select a result to see its accuracy per magazine.</p>
+  <div class="result-grid result-head" aria-hidden="true">
+    <span>Weapon</span><span>Mode</span><span>Dummy</span><span class="num">Range</span><span class="num">Shots</span>
+    <span class="num">Accuracy</span><span class="num">Mag low–high</span><span class="num">Destroyed</span><span class="num">Damage</span>
+  </div>
+  {% for entry in page_entries %}
+    {% set total = entry.total %}
+    {% set mag_accuracy = entry.magazines|map(attribute="accuracy")|list %}
+    <details class="result">
+      <summary class="result-grid">
+        <span>{{ entry.weapon }}</span>
+        <span class="muted">{{ entry.mode }}</span>
+        <span>{{ entry.size }}</span>
+        <span class="num">{{ entry.distance }} m</span>
+        <span class="num">{{ total.shots }}</span>
+        <span class="num {{ total|accuracy_class }}">{{ total.accuracy }}%</span>
+        <span class="num muted">{{ "%.0f"|format(mag_accuracy|min) }}–{{ "%.0f"|format(mag_accuracy|max) }}%</span>
+        <span class="num">{{ total.destroyed }}</span>
+        <span class="num">{{ total.damage }}</span>
+      </summary>
+      <div class="table-wrap">
+        <table class="data mags">
+          <thead>
+            <tr><th>Mag</th><th class="num">Hits</th><th>Accuracy</th><th class="num">%</th><th class="num">Crits</th><th class="num">Destroyed</th><th class="num">Damage</th></tr>
+          </thead>
+          <tbody>
+            {% for magazine in entry.magazines %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td class="num">{{ magazine.hits }}/{{ magazine.shots }}</td>
+                <td class="meter {{ magazine|accuracy_class }}">{{ magazine.accuracy|round|int|bar(100) }}</td>
+                <td class="num {{ magazine|accuracy_class }}">{{ magazine.accuracy }}%</td>
+                <td class="num">{{ magazine.crits }}</td>
+                <td class="num">{{ magazine.destroyed }}</td>
+                <td class="num">{{ magazine.damage }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  {% endfor %}
+
+  {% if pages > 1 %}
+    <nav class="pager" aria-label="Pages">
+      {% if page > 1 %}<a class="chip" href="{{ url_for('main.balance_results', page=page - 1, **filters) }}">&#9666; Previous</a>{% endif %}
+      <span class="muted">Page {{ page }} of {{ pages }}</span>
+      {% if page < pages %}<a class="chip" href="{{ url_for('main.balance_results', page=page + 1, **filters) }}">Next &#9656;</a>{% endif %}
+    </nav>
+  {% endif %}
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

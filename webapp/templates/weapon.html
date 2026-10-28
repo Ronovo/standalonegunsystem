@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import back_link, class_icon, menu_link %}
+{% block title %}{{ weapon.name }}{% endblock %}
+{% block back %}{{ back_link(url_for('main.armory_category', category=weapon.weapon_type.category), weapon.weapon_type.category) }}{% endblock %}
+{% block content %}
+<section class="panel sheet">
+  <div class="sheet-art">{{ class_icon(weapon.weapon_type.class_name, "lg") }}</div>
+  <div class="sheet-body">
+    <h1>{{ weapon.name }}</h1>
+    <p class="muted">{{ weapon.weapon_type.class_name }} · {{ weapon.weapon_type.category }}</p>
+    <table class="stats">
+      <tr><th>Damage</th><td class="bar">{{ weapon.damage|bar(stat_max.damage) }}</td><td>{{ weapon.damage }}</td></tr>
+      <tr><th>Accuracy</th><td class="bar">{{ weapon.base_accuracy|bar(stat_max.base_accuracy) }}</td><td>{{ weapon.base_accuracy }}</td></tr>
+      <tr><th>Base range</th><td class="bar">{{ weapon.range_m|bar(stat_max.range) }}</td><td>{{ weapon.range_m }} m</td></tr>
+      <tr><th>Max range</th><td class="bar">{{ weapon.max_range|bar(stat_max.range) }}</td><td>{{ weapon.max_range }} m</td></tr>
+      <tr><th>Max ammo</th><td class="bar">{{ weapon.max_ammo|bar(stat_max.max_ammo) }}</td><td>{{ weapon.max_ammo }}</td></tr>
+    </table>
+    <p><span class="caption">Fire modes</span> {{ weapon.fire_mode_names() }}</p>
+    <p><span class="caption">Reload</span> {{ reload_note }}</p>
+  </div>
+</section>
+
+<section class="panel">
+  <ol class="menu">
+    {{ menu_link(1, url_for('main.range_setup', weapon=weapon.name), "Take it to the range") }}
+    {{ menu_link(2, url_for('main.bulk_form', name=weapon.name), "Run a bulk fire report") }}
+  </ol>
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import back_link, distance_select, weapon_radios %}
+{% block title %}{{ "Switch Weapons" if switching else "Range Setup" }}{% endblock %}
+{% block back %}
+  {% if switching %}{{ back_link(url_for('main.range_view'), "Back to range") }}{% else %}{{ back_link(url_for('main.menu'), "Main menu") }}{% endif %}
+{% endblock %}
+{% block content %}
+<form method="post" action="{{ url_for('main.range_weapon' if switching else 'main.range_setup') }}" class="setup">
+  <section class="panel">
+    <h1 class="panel-title">{{ "SWITCH WEAPONS" if switching else "WELCOME TO THE GUN RANGE" }}</h1>
+    <p class="muted">Please select a weapon:</p>
+    {{ weapon_radios(groups, selected) }}
+  </section>
+
+  {% if not switching %}
+  <section class="panel">
+    <h2 class="panel-title">DUMMY</h2>
+    <div class="dummy-picker">
+      {% for code, (label, health) in sizes.items() %}
+        <label class="dummy-option">
+          <input type="radio" name="size" value="{{ code }}" {% if code == size %}checked{% endif %}>
+          <span class="dummy" style="height: {{ heights[code] }}px">{% include "svg/dummy.svg" %}</span>
+          <span>{{ label }} <span class="muted">({{ health }} hp)</span></span>
+        </label>
+      {% endfor %}
+    </div>
+    <label class="inline-field">Distance {{ distance_select(ranges, distance) }}</label>
+  </section>
+  {% endif %}
+
+  <button class="menu-item primary" data-key="1"><span class="key">1.)</span><span class="label">{{ "Switch" if switching else "Enter the range" }}</span></button>
+</form>
+{% endblock %}

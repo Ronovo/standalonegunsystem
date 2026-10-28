@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200" role="img" aria-label="Target dummy">
+  <rect class="dummy-post" x="46" y="140" width="8" height="54"/>
+  <rect class="dummy-post" x="28" y="190" width="44" height="8" rx="2"/>
+  <circle class="dummy-body" cx="50" cy="26" r="17"/>
+  <path class="dummy-body" d="M22 54c8-8 48-8 56 0l8 82c-10 10-62 10-72 0z"/>
+  <circle class="dummy-ring" cx="50" cy="94" r="24"/>
+  <circle class="dummy-ring" cx="50" cy="94" r="14"/>
+  <circle class="dummy-bull" cx="50" cy="94" r="4"/>
+</svg>

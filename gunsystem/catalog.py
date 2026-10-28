@@ -6,6 +6,7 @@ A = FireMode.AUTO
 MAG = ReloadStyle.MAGAZINE
 SHELL = ReloadStyle.SHELL
 REV = ReloadStyle.REVOLVER
+SNIPER = WeaponType(class_name="Sniper", category="Large Arms", close_range_step=5, max_close_steps=4)
 
 
 def _type(class_name: str, category: str) -> WeaponType:
@@ -34,9 +35,9 @@ _WEAPONS: tuple[tuple, ...] = (
     ("G3", 20, 75, 300, 500, 80, _type("Assault", "Medium Arms"), (S, B, A), MAG),
     ("G36", 30, 100, 400, 500, 75, _type("Assault", "Medium Arms"), (S, B, A), MAG),
     ("FN FAL", 20, 100, 250, 500, 80, _type("Assault", "Medium Arms"), (S, B, A), MAG),
-    ("M40A3", 5, 100, 500, 500, 80, _type("Sniper", "Large Arms"), (S,), MAG),
-    ("Dragunov", 20, 75, 500, 500, 80, _type("Sniper", "Large Arms"), (S,), MAG),
-    ("Barrett .50Cal", 1, 200, 500, 500, 70, _type("Sniper", "Large Arms"), (S,), MAG),
+    ("M40A3", 5, 100, 500, 500, 80, SNIPER, (S,), MAG),
+    ("Dragunov", 20, 75, 500, 500, 80, SNIPER, (S,), MAG),
+    ("Barrett .50Cal", 1, 200, 500, 500, 70, SNIPER, (S,), MAG),
     ("M249 SAW", 100, 75, 300, 500, 80, _type("LMG", "Large Arms"), (S, A), MAG),
     ("M60E4", 100, 50, 250, 500, 70, _type("LMG", "Large Arms"), (S, A), MAG),
     ("RPD", 100, 50, 350, 500, 70, _type("LMG", "Large Arms"), (S, A), MAG),
@@ -70,10 +71,6 @@ class Catalog:
         if spec is None:
             raise KeyError(f"Unknown weapon: {name}")
         return _from_spec(spec)
-
-    @classmethod
-    def names(cls) -> list[str]:
-        return [spec[0] for spec in _WEAPONS]
 
     @classmethod
     def names_by_category(cls, category: str) -> list[str]:

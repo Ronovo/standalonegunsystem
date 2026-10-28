@@ -1,41 +1,38 @@
-from demo.dummy import Dummy, RANGES
+from demo.dummy import SIZE_STATS, Dummy, RANGES
 
 
 def prompt_dummy_range(dummy: Dummy, debug: bool = False) -> None:
+    back = len(RANGES) + 1
     while True:
         print("Please select distance for dummy")
         print("----------")
-        print("1.) 50 Meters")
-        print("2.) 100 Meters")
-        print("3.) 150 Meters")
-        print("4.) 200 Meters")
-        print("5.) 300 Meters")
-        print("6.) 400 Meters")
-        print("7.) 500 Meters")
-        print("8.) return \n")
-        answer = input("Pick 1-8\n")
+        for index, distance in enumerate(RANGES, start=1):
+            print(f"{index}.) {distance} Meters")
+        print(f"{back}.) return \n")
+        answer = input(f"Pick 1-{back}\n")
         try:
             choice = int(answer)
         except ValueError:
             print("Incorrect choice. Try again.")
             continue
-        if 1 <= choice <= 7:
+        if 1 <= choice <= len(RANGES):
             dummy.distance = RANGES[choice - 1]
             if debug:
                 print(f"Dummy has been set to range of {dummy.distance}")
             return
-        if choice == 8:
+        if choice == back:
             return
         print("Incorrect choice. Try again.")
 
 
-def prompt_new_dummy(debug: bool = False) -> Dummy:
+def prompt_new_dummy(debug: bool = False, distance: int | None = None) -> Dummy:
     print("Dummy Size:")
     print("s = small, m = medium, l = large")
     size = input("Select your Size of Dummy\n").lower()
-    if size not in ("s", "m", "l"):
+    if size not in SIZE_STATS:
         print("Invalid Option, Dummy set to Medium")
-        size = "m"
+    if distance is not None:
+        return Dummy(size, distance)
     dummy = Dummy(size)
     prompt_dummy_range(dummy, debug)
     return dummy

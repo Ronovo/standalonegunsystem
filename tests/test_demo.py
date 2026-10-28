@@ -1,7 +1,7 @@
 import unittest
 
 from demo.dummy import Dummy
-from demo.screens.bulk import plan_magazines
+from demo.simulation import plan_magazines
 from gunsystem import FireMode, advance_string
 
 

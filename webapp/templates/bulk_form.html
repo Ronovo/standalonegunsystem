@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import back_link, class_icon, distance_select, size_radios %}
+{% block title %}Bulk · {{ weapon.name }}{% endblock %}
+{% block back %}{{ back_link(url_for('main.bulk'), "Weapons") }}{% endblock %}
+{% block content %}
+<section class="panel loadout-head">
+  {{ class_icon(weapon.weapon_type.class_name, "md") }}
+  <div>
+    <h1>Bulk Report · {{ weapon.name }}</h1>
+    <p class="muted">Your weapon has {{ weapon.max_ammo }} bullets per magazine. Fire modes: {{ weapon.fire_mode_names() }}.</p>
+  </div>
+</section>
+
+<form method="get" class="panel form-grid" data-busy="Firing…">
+  <label class="inline-field">Shots to test
+    <input type="number" name="shots" min="1" max="{{ max_shots }}" value="{{ values.shots }}">
+  </label>
+  <label class="inline-field">Distance {{ distance_select(ranges, values.distance) }}</label>
+  <fieldset class="radio-group"><legend>Dummy size</legend>{{ size_radios(sizes, values.size) }}</fieldset>
+  <fieldset class="radio-group"><legend>Fire mode</legend>
+    {% for mode in weapon.fire_modes %}
+      <label class="chip"><input type="radio" name="mode" value="{{ mode.value }}" {% if mode == values.mode %}checked{% endif %}> {{ mode.display_name }}</label>
+    {% endfor %}
+  </fieldset>
+  <button class="menu-item primary" data-key="1"><span class="key">1.)</span><span class="label">Run report</span></button>
+</form>
+
+{% if report %}
+{% set totals = report.totals %}
+<section class="panel">
+  <h2 class="panel-title">TOTALS FOR ALL SHOTS</h2>
+  <p class="totals">{{ totals.accuracy }}% Accuracy / {{ totals.destroyed }} Dummies Destroyed / {{ totals.damage }} Damage Done</p>
+  <p class="meter">{{ totals.accuracy|round|int|bar(100, 40) }}</p>
+
+  <h2 class="panel-title">BREAKDOWN BY MAGAZINE</h2>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Mag</th><th>Shots</th><th>Hits</th><th>Misses</th><th>Crits</th><th>Destroyed</th><th>Damage</th><th>Accuracy</th></tr>
+      </thead>
+      <tbody>
+        {% for magazine in report.magazines %}
+          <tr>
+            <td>{{ loop.index }}</td><td>{{ magazine.shots }}</td><td>{{ magazine.hits }}</td><td>{{ magazine.misses }}</td>
+            <td>{{ magazine.crits }}</td><td>{{ magazine.destroyed }}</td><td>{{ magazine.damage }}</td>
+            <td class="{{ magazine|accuracy_class }}">{{ magazine.accuracy }}%</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>All</th><th>{{ totals.shots }}</th><th>{{ totals.hits }}</th><th>{{ totals.misses }}</th>
+          <th>{{ totals.crits }}</th><th>{{ totals.destroyed }}</th><th>{{ totals.damage }}</th><th>{{ totals.accuracy }}%</th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

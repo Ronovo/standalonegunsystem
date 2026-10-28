@@ -15,13 +15,6 @@ class FireMode(Enum):
             FireMode.AUTO: "Fully Automatic",
         }[self]
 
-    @classmethod
-    def from_display(cls, name: str) -> "FireMode":
-        for mode in cls:
-            if mode.display_name == name:
-                return mode
-        raise KeyError(f"Unknown fire mode: {name}")
-
 
 class ReloadStyle(Enum):
     MAGAZINE = "magazine"
@@ -33,6 +26,9 @@ class ReloadStyle(Enum):
 class WeaponType:
     class_name: str
     category: str
+    # Added to the to-hit roll per 50m inside effective range; negative is a bonus.
+    close_range_step: int = -5
+    max_close_steps: int = 3
 
 
 class Weapon:
@@ -76,21 +72,6 @@ class Weapon:
             return False
         self.current_ammo -= 1
         return True
-
-    def copy(self) -> "Weapon":
-        clone = Weapon(
-            name=self.name,
-            max_ammo=self.max_ammo,
-            damage=self.damage,
-            range_m=self.range_m,
-            max_range=self.max_range,
-            base_accuracy=self.base_accuracy,
-            weapon_type=self.weapon_type,
-            fire_modes=self.fire_modes,
-            reload_style=self.reload_style,
-        )
-        clone.current_ammo = self.current_ammo
-        return clone
 
     def fire_mode_names(self) -> str:
         return ", ".join(mode.display_name for mode in self.fire_modes)

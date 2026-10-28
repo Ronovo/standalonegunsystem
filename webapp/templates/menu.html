@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import menu_link %}
+{% block content %}
+<section class="hero">
+  <div class="hero-art">{% include "svg/range_scene.svg" %}</div>
+  <div>
+    <h1>Welcome to Ronovo's Stand Alone Gun System</h1>
+    <p class="muted">Designed to be plugged into text adventure games.</p>
+    {% if destroyed %}<p>Dummies destroyed this session: <strong>{{ destroyed }}</strong></p>{% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2 class="panel-title">MAIN MENU</h2>
+  <ol class="menu">
+    {{ menu_link(1, url_for('main.armory'), "Armory", "View weapons in detail") }}
+    {{ menu_link(2, url_for('main.range_view'), "Range", "Select a gun and try it on the range") }}
+    {{ menu_link(3, url_for('main.bulk'), "Bulk Fire Report", "Fire many rounds and see the numbers") }}
+    {{ menu_link(4, url_for('main.balance'), "Balance Report", "Every gun, every dummy, every range") }}
+  </ol>
+</section>
+{% endblock %}

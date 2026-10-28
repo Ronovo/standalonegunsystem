@@ -8,13 +8,14 @@ def weapon_type_menu() -> list[str]:
     print("----------------------")
     for index, category in enumerate(Catalog.CATEGORIES, start=1):
         print(f"{index}.) {category}")
-    answer = input("Pick 1-3\n")
+    category_count = len(Catalog.CATEGORIES)
+    answer = input(f"Pick 1-{category_count}\n")
     try:
         choice = int(answer)
     except ValueError:
         print("Incorrect choice. Returning to Menu")
         return []
-    if not 1 <= choice <= 3:
+    if not 1 <= choice <= category_count:
         print("Incorrect choice. Returning to Menu")
         return []
     return Catalog.names_by_category(Catalog.CATEGORIES[choice - 1])
@@ -75,10 +76,10 @@ def set_fire_mode(selected_weapon: Weapon) -> FireMode | None:
     return None
 
 
-def interactive_reload(weapon: Weapon) -> None:
+def interactive_reload(weapon: Weapon) -> bool:
     if weapon.current_ammo == weapon.max_ammo:
         print("Ammo already full. No need to reload")
-        return
+        return False
 
     if weapon.reload_style is ReloadStyle.SHELL:
         print("Non-Automatic Shotguns need to be manually loaded.")
@@ -89,7 +90,7 @@ def interactive_reload(weapon: Weapon) -> None:
             weapon.load_round()
             remaining -= 1
             print(f"One shell loaded. {remaining} remaining")
-        return
+        return True
 
     if weapon.reload_style is ReloadStyle.REVOLVER:
         print("Revolvers unload when reloaded and must be manually loaded")
@@ -103,9 +104,10 @@ def interactive_reload(weapon: Weapon) -> None:
             weapon.load_round()
             remaining -= 1
             print(f"One bullet loaded. {remaining} remaining")
-        return
+        return True
 
     weapon.reload()
+    return True
 
 
 def print_armory_display(weapon_name: str) -> None:

@@ -13,22 +13,13 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(second.current_ammo, 0)
 
     def test_catalog_includes_all_weapons(self):
-        names = Catalog.names()
+        names = [weapon.name for weapon in Catalog.all()]
         self.assertEqual(len(names), 26)
         self.assertIn("Spas-12", names)
-        self.assertEqual(len(Catalog.all()), 26)
 
     def test_unknown_weapon_raises(self):
         with self.assertRaises(KeyError):
             Catalog.create("Not A Gun")
-
-    def test_copy_does_not_share_ammo(self):
-        gun = Catalog.create("MP5")
-        gun.reload()
-        clone = gun.copy()
-        gun.fire_shot()
-        self.assertEqual(gun.current_ammo, 29)
-        self.assertEqual(clone.current_ammo, 30)
 
 
 if __name__ == "__main__":

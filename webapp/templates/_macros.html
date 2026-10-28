@@ -1,0 +1,63 @@
+{% macro menu_link(key, href, label, hint="") -%}
+<li>
+  <a class="menu-item" href="{{ href }}" data-key="{{ key }}">
+    <span class="key">{{ key }}.)</span><span class="label">{{ label }}</span>
+    {%- if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+  </a>
+</li>
+{%- endmacro %}
+
+{% macro back_link(href, label) -%}
+<a class="back" href="{{ href }}" data-back>&#9666; {{ label }}</a>
+{%- endmacro %}
+
+{% macro class_icon(class_name, size="sm") -%}
+<span class="gun gun-{{ size }}" aria-hidden="true">{% include "svg/" ~ class_name|lower ~ ".svg" %}</span>
+{%- endmacro %}
+
+{% macro weapon_menu(groups, endpoint) -%}
+{% set counter = namespace(n=0) %}
+{% for class_name, weapons in groups.items() %}
+<section class="weapon-group">
+  <h2 class="group-title">{{ class_icon(class_name) }}<span>{{ class_name }}</span></h2>
+  <ol class="menu">
+    {% for weapon in weapons %}
+      {% set counter.n = counter.n + 1 %}
+      {{ menu_link(counter.n, url_for(endpoint, name=weapon.name), weapon.name,
+                   "DMG %d · ACC %d · %d rds"|format(weapon.damage, weapon.base_accuracy, weapon.max_ammo)) }}
+    {% endfor %}
+  </ol>
+</section>
+{% endfor %}
+{%- endmacro %}
+
+{% macro weapon_radios(groups, selected) -%}
+{% for class_name, weapons in groups.items() %}
+<fieldset class="radio-group">
+  <legend>{{ class_icon(class_name, "xs") }}{{ class_name }}</legend>
+  {% for weapon in weapons %}
+    <label class="chip">
+      <input type="radio" name="weapon" value="{{ weapon.name }}" required {% if weapon.name == selected %}checked{% endif %}>
+      {{ weapon.name }}
+    </label>
+  {% endfor %}
+</fieldset>
+{% endfor %}
+{%- endmacro %}
+
+{% macro size_radios(sizes, selected) -%}
+{% for code, (label, health) in sizes.items() %}
+  <label class="chip">
+    <input type="radio" name="size" value="{{ code }}" {% if code == selected %}checked{% endif %}>
+    {{ label }} <span class="muted">({{ health }} hp)</span>
+  </label>
+{% endfor %}
+{%- endmacro %}
+
+{% macro distance_select(ranges, selected) -%}
+<select name="distance">
+  {% for distance in ranges %}
+    <option value="{{ distance }}" {% if distance == selected %}selected{% endif %}>{{ distance }} m</option>
+  {% endfor %}
+</select>
+{%- endmacro %}

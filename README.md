@@ -1,5 +1,5 @@
 # Stand Alone Gun System (Text-Based)
-Simple weapons system built in Python. The `gunsystem` library can be imported into other games; this repo also includes a terminal range demo.
+Simple weapons system built in Python. The `gunsystem` library can be imported into other games; this repo also includes a range demo you can play in the browser (Flask) or in the terminal.
 
 <p float="left">
   <img src="Resources/MainMenu.png" width="250" />
@@ -18,9 +18,23 @@ Simple weapons system built in Python. The `gunsystem` library can be imported i
 
 ### 3.) Navigate to the project with Powershell/Command Prompt
   - `cd (drive)/(File Location)/standalonegunsystem`
-  - Once there, run `python ./main.py`
-  - You can also run `python -m demo`
-### 4.) Game should start in your terminal window
+
+### 4.) Web version
+  - Install Flask once: `pip install flask`
+  - Run `python -m webapp`
+  - Open http://127.0.0.1:5000 in your browser
+  - Menus can be clicked or driven from the keyboard: number keys pick an item, `Esc` goes back
+
+### Web version in Docker
+  - Build: `docker build -t gunsystem-web .`
+  - Run: `docker run -d --name gunsystem-web -p 8000:8000 gunsystem-web`
+  - Open http://127.0.0.1:8000
+  - Set `-e GUNSYSTEM_SECRET_KEY=<random string>` to keep range sessions valid across container restarts
+  - Balance text reports are saved inside the container; add `-v "${PWD}/Balance Reports:/app/Balance Reports"` to keep them on your machine
+
+### 5.) Terminal version
+  - Run `python ./main.py` (or `python -m demo`)
+  - The game starts in your terminal window
 
 ## Using as a library
 From the repo (or with `gunsystem/` on your Python path):
@@ -33,7 +47,7 @@ gun.reload()
 result = resolve_shot(gun, Target(distance=100, size="m"))
 ```
 
-`result` has `hit`, `damage`, `critical`, and `remaining_ammo`.
+`result` has `hit`, `damage`, `critical`, `remaining_ammo`, and `fired` (False when the weapon was empty).
 
 ## Tests
 From the repo root:
@@ -53,7 +67,7 @@ python -m unittest discover -s tests -t .
   - Bulk Firing Options Per Gun
 - Balance Report Functionality
     - Creates a report per weapon in /Balance Reports
-    - Each Report includes stats for 3 Full Magazines shot at:
+    - Each Report includes stats for 15 Full Magazines shot at:
         - Each Type of Dummy
         - Every Range listed in the Range Menu
         - For Each Firing Mode (Single, 3 Round, Auto)

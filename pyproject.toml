@@ -5,6 +5,9 @@ description = "Standalone text-based gun system for games"
 readme = "README.md"
 requires-python = ">=3.10"
 
+[project.optional-dependencies]
+web = ["flask>=3"]
+
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"

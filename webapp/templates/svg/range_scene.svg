@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 150" role="img" aria-label="Firing range with three target dummies at different distances">
+  <rect class="scene-wall" width="360" height="72"/>
+  <path class="scene-floor" d="M0 150h360L250 72H110z"/>
+  <path class="scene-lane" d="M60 150 140 72M180 150V72M300 150 220 72"/>
+  <g class="scene-dummy">
+    <circle cx="160" cy="52" r="4"/><path d="M154 58c2-2 10-2 12 0l2 14h-16z"/>
+    <circle cx="207" cy="50" r="5"/><path d="M199 57c3-3 13-3 16 0l2 17h-20z"/>
+    <circle cx="246" cy="58" r="8"/><path d="M234 70c4-4 20-4 24 0l3 28h-30z"/>
+  </g>
+  <g class="scene-reticle">
+    <circle cx="246" cy="80" r="22"/>
+    <path d="M246 50v18M246 92v18M216 80h18M258 80h18"/>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_macros.html" import back_link, weapon_menu %}
+{% block title %}{{ category }}{% endblock %}
+{% block back %}{{ back_link(url_for('main.armory'), "Weapon types") }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 class="panel-title">ARMORY · {{ category|upper }}</h1>
+  {{ weapon_menu(groups, 'main.weapon_detail') }}
+</section>
+{% endblock %}

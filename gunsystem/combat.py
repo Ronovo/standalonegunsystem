@@ -4,8 +4,8 @@ import random
 from dataclasses import dataclass
 from typing import Optional
 
-from gunsystem.target import Target
-from gunsystem.weapon import FireMode, Weapon
+from gunsystem.target import SIZE_MODIFIERS, Target
+from gunsystem.weapon import FireMode, Weapon, WeaponType
 
 
 @dataclass(frozen=True)
@@ -14,15 +14,16 @@ class ShotResult:
     damage: int
     critical: bool
     remaining_ammo: int
+    fired: bool
 
 
-def apply_range_modifier(distance: int, range_m: int, is_sniper: bool, base_result: float) -> float:
+def apply_range_modifier(
+    distance: int, range_m: int, weapon_type: WeaponType, base_result: float
+) -> float:
     if distance < range_m:
         close_range = range_m - distance
-        steps = close_range // 50
-        if is_sniper and steps > 3:
-            steps = 4
-        base_result -= 5 * steps
+        steps = min(close_range // 50, weapon_type.max_close_steps)
+        base_result += weapon_type.close_range_step * steps
         if base_result < 0:
             base_result = 0
     elif distance > range_m:
@@ -33,11 +34,7 @@ def apply_range_modifier(distance: int, range_m: int, is_sniper: bool, base_resu
 
 
 def apply_size_modifier(size: str, base_result: float) -> float:
-    if size == "s":
-        return base_result * 1.10
-    if size == "l":
-        return base_result * 0.90
-    return base_result
+    return base_result * SIZE_MODIFIERS[size]
 
 
 def apply_spray(base_result: float, shots_in_string: int) -> float:
@@ -49,7 +46,7 @@ def apply_spray(base_result: float, shots_in_string: int) -> float:
         return base_result * 2
     if 10 < shots_in_string <= 30:
         return base_result * 5
-    if 30 < shots_in_string <= 100:
+    if shots_in_string > 30:
         return base_result * 10
     return base_result
 
@@ -77,28 +74,33 @@ def resolve_shot(
     shots_in_string: int = 1,
     rng: Optional[random.Random] = None,
 ) -> ShotResult:
-    """Fire one round if ammo remains. Out of max range is always a miss."""
+    """Fire one round if ammo remains. Out of max range or zero damage after falloff is a miss."""
     rng = rng or random.Random()
     if not weapon.fire_shot():
-        return ShotResult(hit=False, damage=0, critical=False, remaining_ammo=weapon.current_ammo)
+        return _miss(weapon, fired=False)
 
     if target.distance > weapon.max_range:
-        return ShotResult(hit=False, damage=0, critical=False, remaining_ammo=weapon.current_ammo)
+        return _miss(weapon)
 
-    base_result = float(rng.randint(1, 100))
-    is_sniper = weapon.weapon_type.class_name == "Sniper"
-    base_result = apply_range_modifier(target.distance, weapon.range_m, is_sniper, base_result)
+    # Spray scales the raw roll so the close-range clamp to 0 cannot cancel it.
+    base_result = apply_spray(float(rng.randint(1, 100)), shots_in_string)
+    base_result = apply_range_modifier(target.distance, weapon.range_m, weapon.weapon_type, base_result)
     base_result = apply_size_modifier(target.size, base_result)
-    base_result = apply_spray(base_result, shots_in_string)
+    if base_result > weapon.base_accuracy:
+        return _miss(weapon)
 
-    if 0 <= base_result <= weapon.base_accuracy:
-        damage = compute_damage(target.distance, weapon.range_m, weapon.damage)
-        critical = rng.randint(1, 200) == 1
-        if critical:
-            if rng.randint(1, 100) > 20:
-                damage *= 3
-            else:
-                damage *= 2
-        return ShotResult(hit=True, damage=damage, critical=critical, remaining_ammo=weapon.current_ammo)
+    damage = compute_damage(target.distance, weapon.range_m, weapon.damage)
+    if damage == 0:
+        return _miss(weapon)
 
-    return ShotResult(hit=False, damage=0, critical=False, remaining_ammo=weapon.current_ammo)
+    critical = rng.randint(1, 200) == 1
+    if critical:
+        if rng.randint(1, 100) > 20:
+            damage *= 3
+        else:
+            damage *= 2
+    return ShotResult(hit=True, damage=damage, critical=critical, remaining_ammo=weapon.current_ammo, fired=True)
+
+
+def _miss(weapon: Weapon, fired: bool = True) -> ShotResult:
+    return ShotResult(hit=False, damage=0, critical=False, remaining_ammo=weapon.current_ammo, fired=fired)
