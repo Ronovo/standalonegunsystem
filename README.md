@@ -32,6 +32,12 @@ Simple weapons system built in Python. The `gunsystem` library can be imported i
   - Set `-e GUNSYSTEM_SECRET_KEY=<random string>` to keep range sessions valid across container restarts
   - Balance text reports are saved inside the container; add `-v "${PWD}/Balance Reports:/app/Balance Reports"` to keep them on your machine
 
+### Log in with Ronovo
+  - The range and destroyed count are kept in the browser for 31 days
+  - With `RONOVO_SSO_URL` (the portfolio's address, such as `http://ronovo.lan`) and `RONOVO_SSO_PUBLIC_KEY` (printed by the portfolio's `python sso.py`) set, the top bar offers **Log in with Ronovo**
+  - While logged in, that progress is also kept for the Ronovo account in `DATA_DIR` (`/app/data` in the container, so add a volume there), and logging in on another browser takes whichever copy is newer
+  - Needs `pip install pyjwt[crypto]` as well as Flask
+
 ### 5.) Terminal version
   - Run `python ./main.py` (or `python -m demo`)
   - The game starts in your terminal window

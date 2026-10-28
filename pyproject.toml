@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-web = ["flask>=3"]
+web = ["flask>=3", "pyjwt[crypto]>=2.8"]
 
 [build-system]
 requires = ["setuptools>=61"]

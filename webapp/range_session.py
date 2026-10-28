@@ -1,3 +1,5 @@
+import time
+
 from flask import session
 
 from gunsystem import Catalog, FireMode, ReloadStyle
@@ -61,7 +63,9 @@ class RangeSession:
             distance=self.dummy.distance,
             health=self.dummy.health,
         )
+        session.permanent = True
         session["range"] = self.state
+        session["saved_at"] = time.time()
 
     @property
     def fire_mode(self) -> FireMode:
