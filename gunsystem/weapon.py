@@ -22,6 +22,26 @@ class ReloadStyle(Enum):
     REVOLVER = "revolver"
 
 
+class ReloadStep(Enum):
+    EMPTY = "empty"
+    MAGAZINE = "magazine"
+    SHELL = "shell"
+    ROUND = "round"
+
+    @property
+    def label(self) -> str:
+        return {
+            ReloadStep.EMPTY: "Empty cylinder",
+            ReloadStep.MAGAZINE: "Reload magazine",
+            ReloadStep.SHELL: "Load shell",
+            ReloadStep.ROUND: "Load round",
+        }[self]
+
+
+LOADING_STEPS = {ReloadStyle.MAGAZINE: ReloadStep.MAGAZINE, ReloadStyle.SHELL: ReloadStep.SHELL,
+                 ReloadStyle.REVOLVER: ReloadStep.ROUND}
+
+
 @dataclass(frozen=True)
 class WeaponType:
     class_name: str
@@ -67,23 +87,26 @@ class Weapon:
     def unload(self) -> None:
         self.current_ammo = 0
 
-    def next_reload_step(self, loading: bool = False) -> "str | ReloadStyle | None":
-        """The next reload action: None when full, "empty" when a revolver still holding rounds has to be emptied
-        before loading, else the reload style. `loading` is True once a reload has started."""
+    def next_reload_step(self, loading: bool = False) -> ReloadStep | None:
+        """The next reload action: None when full, EMPTY when a revolver still holding rounds has to be emptied
+        before loading. `loading` is True once a reload has started."""
         if self.current_ammo == self.max_ammo:
             return None
         if self.reload_style is ReloadStyle.REVOLVER and self.current_ammo > 0 and not loading:
-            return "empty"
-        return self.reload_style
+            return ReloadStep.EMPTY
+        return LOADING_STEPS[self.reload_style]
 
-    def take_reload_step(self, step: "str | ReloadStyle") -> None:
-        """Empties the cylinder, loads a whole magazine, or loads one shell or round."""
-        if step == "empty":
+    def take_reload_step(self, step: ReloadStep) -> str:
+        """Empties the cylinder, loads a whole magazine, or loads one shell or round. Returns what happened."""
+        if step is ReloadStep.EMPTY:
             self.unload()
-        elif step is ReloadStyle.MAGAZINE:
+            return "Gun unloaded. Load rounds one at a time."
+        if step is ReloadStep.MAGAZINE:
             self.reload()
-        else:
-            self.load_round()
+            return "Weapon is reloaded!"
+        self.load_round()
+        noun = "shell" if step is ReloadStep.SHELL else "bullet"
+        return f"One {noun} loaded. {self.max_ammo - self.current_ammo} remaining."
 
     def fire_shot(self) -> bool:
         if self.current_ammo <= 0:

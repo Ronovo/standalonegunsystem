@@ -16,11 +16,11 @@
   <section class="panel">
     <h2 class="panel-title">DUMMY</h2>
     <div class="dummy-picker">
-      {% for code, (label, health) in sizes.items() %}
+      {% for code, option in sizes.items() %}
         <label class="dummy-option">
           <input type="radio" name="size" value="{{ code }}" {% if code == size %}checked{% endif %}>
-          <span class="dummy" style="height: {{ heights[code] }}px">{% include "svg/dummy.svg" %}</span>
-          <span>{{ label }} <span class="muted">({{ health }} hp)</span></span>
+          <span class="dummy" style="height: {{ option.height }}px">{% include "svg/dummy.svg" %}</span>
+          <span>{{ option.label }} <span class="muted">({{ option.health }} hp)</span></span>
         </label>
       {% endfor %}
     </div>

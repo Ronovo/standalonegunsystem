@@ -36,11 +36,17 @@
   });
 
   document.querySelectorAll("form[data-busy]").forEach((form) => {
+    const button = form.querySelector("button");
+    if (!button) return;
+    const idle = button.textContent;
     form.addEventListener("submit", () => {
-      const button = form.querySelector("button");
-      if (!button) return;
       button.textContent = form.dataset.busy;
       button.disabled = true;
+    });
+    // Going back to this page can show it as it was left, with the button still busy.
+    window.addEventListener("pageshow", () => {
+      button.textContent = idle;
+      button.disabled = false;
     });
   });
 })();

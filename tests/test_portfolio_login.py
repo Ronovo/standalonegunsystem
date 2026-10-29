@@ -1,49 +1,26 @@
-import base64
 import os
 import tempfile
 import time
 import unittest
 from unittest import mock
-from urllib.parse import parse_qs, urlsplit
 
-import jwt
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-
-from webapp import create_app
-
-KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-PUBLIC_KEY = base64.b64encode(KEY.public_key().public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)).decode()
-
-
-def issue(sub="1", name="ronovo", aud="gunsystem"):
-    now = int(time.time())
-    return jwt.encode({"iss": "portfolio", "aud": aud, "sub": sub, "name": name, "iat": now, "exp": now + 300},
-                      KEY, algorithm="RS256")
+from tests.helpers import issue, log_in, make_app
+from webapp.players import Players
 
 
 class PortfolioOffTests(unittest.TestCase):
     def test_no_portfolio_login_without_config(self):
-        with mock.patch.dict(os.environ, {"PORTFOLIO_SSO_URL": "", "PORTFOLIO_SSO_PUBLIC_KEY": ""}):
-            client = create_app({"TESTING": True, "SECRET_KEY": "test"}).test_client()
+        client = make_app(self).test_client()
         self.assertNotIn(b"Log in with portfolio account", client.get("/").data)
         self.assertEqual(client.get("/sso/login").status_code, 404)
 
 
 class PortfolioLoginTests(unittest.TestCase):
     def setUp(self):
-        data_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
-        self.addCleanup(data_dir.cleanup)
-        env = mock.patch.dict(os.environ, {"PORTFOLIO_SSO_URL": "http://portfolio.test", "PORTFOLIO_SSO_PUBLIC_KEY": PUBLIC_KEY})
-        env.start()
-        self.addCleanup(env.stop)
-        self.app = create_app({"TESTING": True, "SECRET_KEY": "test", "DATA_DIR": data_dir.name})
+        self.app = make_app(self, portfolio=True)
 
     def log_in(self, client, sub="1", token=None):
-        location = client.get("/sso/login").location
-        query = parse_qs(urlsplit(location).query)
-        self.assertEqual(query["app"], ["gunsystem"])
-        return client.post("/sso/callback", data={"state": query["state"][0], "token": token or issue(sub)})
+        return log_in(client, sub, token)
 
     def range_weapon(self, client):
         with client.session_transaction() as session:
@@ -65,11 +42,12 @@ class PortfolioLoginTests(unittest.TestCase):
         first = self.app.test_client()
         self.log_in(first)
         first.post("/range/setup", data={"weapon": "M1911", "size": "s", "distance": "50"})
-        for _ in range(40):
-            first.post("/range/fire")
-            first.post("/range/reload")
+        with mock.patch("random.Random.randint", return_value=1):
+            for _ in range(3):
+                first.post("/range/fire")
         with first.session_transaction() as session:
             destroyed = session.get("destroyed", 0)
+        self.assertGreater(destroyed, 0)
 
         second = self.app.test_client()
         self.log_in(second)
@@ -89,11 +67,36 @@ class PortfolioLoginTests(unittest.TestCase):
         self.log_in(third)
         self.assertEqual(self.range_weapon(third), "M40A3")
 
+    def test_a_second_account_on_the_same_browser_starts_without_the_first_ones_range(self):
+        client = self.app.test_client()
+        self.log_in(client, "1")
+        client.post("/range/setup", data={"weapon": "M1911", "size": "s", "distance": "50"})
+        client.post("/logout")
+        self.log_in(client, "2")
+        self.assertIsNone(self.range_weapon(client))
+
+    def test_range_played_after_logging_out_joins_the_next_account(self):
+        client = self.app.test_client()
+        self.log_in(client, "1")
+        client.post("/logout")
+        client.post("/range/setup", data={"weapon": "AK47", "size": "s", "distance": "50"})
+        self.log_in(client, "2")
+        self.assertEqual(self.range_weapon(client), "AK47")
+
     def test_bad_callbacks_are_rejected(self):
         client = self.app.test_client()
         self.assertEqual(self.log_in(client, token=issue(aud="casino")).status_code, 400)
         self.assertEqual(client.post("/sso/callback", data={"state": "nope", "token": issue()}).status_code, 400)
         self.assertIn(b"Log in with portfolio account", client.get("/").data)
+
+
+class PlayersTests(unittest.TestCase):
+    def test_an_older_copy_never_replaces_a_newer_one(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
+            players = Players(os.path.join(folder, "players.db"))
+            players.store("1", {"destroyed": 5}, saved_at=time.time())
+            players.store("1", {"destroyed": 1}, saved_at=0)
+            self.assertEqual(players.load("1")[0], {"destroyed": 5})
 
 
 if __name__ == "__main__":

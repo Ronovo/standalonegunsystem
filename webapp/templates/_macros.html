@@ -46,10 +46,10 @@
 {%- endmacro %}
 
 {% macro size_radios(sizes, selected) -%}
-{% for code, (label, health) in sizes.items() %}
+{% for code, size in sizes.items() %}
   <label class="chip">
     <input type="radio" name="size" value="{{ code }}" {% if code == selected %}checked{% endif %}>
-    {{ label }} <span class="muted">({{ health }} hp)</span>
+    {{ size.label }} <span class="muted">({{ size.health }} hp)</span>
   </label>
 {% endfor %}
 {%- endmacro %}

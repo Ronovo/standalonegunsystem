@@ -1,4 +1,5 @@
-from gunsystem.dummy import SIZE_STATS, Dummy, RANGES
+from gunsystem.dummy import RANGES, Dummy
+from gunsystem.target import SIZES
 from demo.ui import formatter
 
 
@@ -14,10 +15,11 @@ def prompt_dummy_range(dummy: Dummy, debug: bool = False) -> None:
 
 def prompt_new_dummy(debug: bool = False, distance: int | None = None) -> Dummy:
     print("Dummy Size:")
-    print("s = small, m = medium, l = large")
+    print(", ".join(f"{code} = {size.label.lower()}" for code, size in SIZES.items()))
     size = input("Select your Size of Dummy\n").lower()
-    if size not in SIZE_STATS:
+    if size not in SIZES:
         print("Invalid Option, Dummy set to Medium")
+        size = "m"
     if distance is not None:
         return Dummy(size, distance)
     dummy = Dummy(size)

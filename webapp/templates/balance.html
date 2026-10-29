@@ -26,8 +26,8 @@
 <section class="panel">
   <nav class="tabs" aria-label="Report filters">
     <span class="caption">Dummy</span>
-    {% for name in sizes %}
-      <a class="chip{% if name == size %} active{% endif %}" href="{{ url_for('main.balance', size=name, metric=metric) }}">{{ name }}</a>
+    {% for code, option in sizes.items() %}
+      <a class="chip{% if code == size %} active{% endif %}" href="{{ url_for('main.balance', size=code, metric=metric) }}">{{ option.label }}</a>
     {% endfor %}
     <span class="caption">Show</span>
     {% for key, label in metrics.items() %}

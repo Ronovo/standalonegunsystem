@@ -1,4 +1,4 @@
-from gunsystem.simulation import MAGAZINES_PER_RANGE, balance_runs, write_report
+from gunsystem.simulation import MAGAZINES_PER_RANGE, REPORT_DIR, balance_runs, write_report
 
 
 def balance_report() -> None:
@@ -16,6 +16,6 @@ def balance_report() -> None:
     for run in balance_runs():
         write_report(*run)
 
-    print("Report finished. You can find it in the repo's Balance Report Directory.")
+    print(f"Report finished. You can find it in the {REPORT_DIR.resolve()} folder.")
     input("Press any key to return to Main Menu...")
 

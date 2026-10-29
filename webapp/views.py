@@ -1,19 +1,30 @@
 import threading
 import time
+from collections import OrderedDict
 from functools import wraps
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
 from gunsystem import Catalog, FireMode, ReloadStyle, Weapon
-
-from gunsystem.dummy import RANGES, SIZE_LABELS, SIZE_STATS, Dummy, size_code, size_label
-from gunsystem.simulation import MAGAZINES_PER_RANGE, REPORT_DIR, MagazineResult, balance_runs, combine, run_bulk, write_report
-from webapp.range_session import RELOAD_LABELS, RangeSession
+from gunsystem.dummy import RANGES, Dummy, size_code
+from gunsystem.simulation import (
+    MAGAZINES_PER_RANGE,
+    MAX_BULK_SHOTS,
+    REPORT_DIR,
+    MagazineResult,
+    balance_runs,
+    combine,
+    run_bulk,
+    write_report,
+)
+from gunsystem.target import SIZES
+from webapp.range_session import RangeSession
 
 bp = Blueprint("main", __name__)
 
-MAX_BULK_SHOTS = 1000
 RESULTS_PER_PAGE = 50
+# Balance results are kept for this many accounts, dropping the one that ran a report longest ago.
+MAX_BALANCE_RESULTS = 20
 BALANCE_METRICS = {"accuracy": "Accuracy", "destroyed": "Dummies destroyed", "damage": "Damage"}
 RELOAD_NOTES = {
     ReloadStyle.MAGAZINE: "Magazine fed: reloads in one go.",
@@ -21,7 +32,6 @@ RELOAD_NOTES = {
     ReloadStyle.REVOLVER: "Revolver: empty the cylinder, then load rounds one at a time.",
 }
 FIRE_LABELS = {FireMode.SINGLE: "a shot", FireMode.BURST: "a 3 round burst", FireMode.AUTO: "a string"}
-DUMMY_HEIGHTS = {"s": 110, "m": 150, "l": 190}
 # A balance run takes a few seconds of CPU, so only one runs at a time.
 _balance_lock = threading.Lock()
 
@@ -56,7 +66,7 @@ def accuracy_class(result: MagazineResult) -> str:
     return "acc-high"
 
 
-def _int(value, default: int) -> int:
+def _int(value, default: int | None) -> int | None:
     try:
         return int(value)
     except (TypeError, ValueError):
@@ -78,9 +88,26 @@ def _balance_owner() -> str | None:
     return session.get("portfolio_sub")
 
 
-def _balance_run() -> dict | None:
+def _balance_results() -> OrderedDict:
+    return current_app.extensions.setdefault("balance_results", OrderedDict())
+
+
+def _stored_balance() -> dict | None:
     owner = _balance_owner()
-    return current_app.extensions.setdefault("balance_runs", {}).get(owner) if owner else None
+    return _balance_results().get(owner) if owner else None
+
+
+def _keep_balance(owner: str, report: dict) -> None:
+    results = _balance_results()
+    results[owner] = report
+    results.move_to_end(owner)
+    while len(results) > MAX_BALANCE_RESULTS:
+        results.popitem(last=False)
+
+
+def _balance_args() -> dict:
+    """The balance page's own query arguments, to carry over a redirect."""
+    return {key: request.args[key] for key in ("size", "metric") if key in request.args}
 
 
 def _distance(value) -> int:
@@ -89,8 +116,8 @@ def _distance(value) -> int:
 
 
 def _dummy_height(dummy: Dummy) -> int:
-    far = (dummy.distance - RANGES[0]) / RANGES[-1]
-    return round(DUMMY_HEIGHTS[dummy.size] * (1 - 0.55 * far))
+    far = (dummy.distance - RANGES[0]) / (RANGES[-1] - RANGES[0])
+    return round(SIZES[dummy.size].height * (1 - 0.55 * far))
 
 
 @bp.get("/")
@@ -151,11 +178,11 @@ def range_view():
         dummy=range_session.dummy,
         dummy_height=_dummy_height(range_session.dummy),
         fire_label=FIRE_LABELS[range_session.fire_mode],
-        reload_label=RELOAD_LABELS.get(step) if step else None,
+        reload_label=step.label if step else None,
         reload_note=RELOAD_NOTES[range_session.weapon.reload_style],
         log=range_session.state["log"],
         destroyed=session.get("destroyed", 0),
-        sizes=SIZE_STATS,
+        sizes=SIZES,
         ranges=RANGES,
     )
 
@@ -175,9 +202,8 @@ def range_setup():
         selected=request.args.get("weapon") or (current.weapon.name if current else None),
         size=current.dummy.size if current else "m",
         distance=current.dummy.distance if current else RANGES[0],
-        sizes=SIZE_STATS,
+        sizes=SIZES,
         ranges=RANGES,
-        heights=DUMMY_HEIGHTS,
         switching=False,
     )
 
@@ -268,24 +294,24 @@ def bulk_form(name: str):
         values=values,
         report=report,
         max_shots=MAX_BULK_SHOTS,
-        sizes=SIZE_STATS,
+        sizes=SIZES,
         ranges=RANGES,
     )
 
 
 @bp.get("/balance")
 def balance():
-    run = _balance_run()
-    size = size_label(request.args.get("size"))
+    report = _stored_balance()
+    size = size_code(request.args.get("size"))
     metric = request.args.get("metric") if request.args.get("metric") in BALANCE_METRICS else "accuracy"
-    rows = [row for row in run["rows"] if row["size"] == size] if run else None
+    rows = [row for row in report["rows"] if row["size"] == size] if report else None
     return render_template(
         "balance.html",
-        run=run,
+        run=report,
         rows=rows,
         size=size,
         metric=metric,
-        sizes=SIZE_LABELS,
+        sizes=SIZES,
         metrics=BALANCE_METRICS,
         ranges=RANGES,
         magazines=MAGAZINES_PER_RANGE,
@@ -299,20 +325,20 @@ def balance_run():
     owner = _balance_owner()
     if owner is None:
         flash("Log in with your portfolio account to run a balance report.")
-        return redirect(url_for(".balance", **request.args))
+        return redirect(url_for(".balance", **_balance_args()))
     if not _balance_lock.acquire(blocking=False):
         flash("Another balance report is running. Try again in a few seconds.")
-        return redirect(url_for(".balance", **request.args))
+        return redirect(url_for(".balance", **_balance_args()))
     try:
-        run = _run_balance(request.form.get("write_files") == "on")
+        report = _balance_report(request.form.get("write_files") == "on")
     finally:
         _balance_lock.release()
-    current_app.extensions.setdefault("balance_runs", {})[owner] = run
-    flash("Report finished." + (f" Text reports saved to {REPORT_DIR}/." if run["wrote_files"] else ""))
-    return redirect(url_for(".balance", **request.args))
+    _keep_balance(owner, report)
+    flash("Report finished." + (f" Text reports saved to {REPORT_DIR}/." if report["wrote_files"] else ""))
+    return redirect(url_for(".balance", **_balance_args()))
 
 
-def _run_balance(write_files: bool) -> dict:
+def _balance_report(write_files: bool) -> dict:
     started = time.perf_counter()
     rows = []
     for weapon, fire_mode, size, ranges in balance_runs():
@@ -340,19 +366,19 @@ def _run_balance(write_files: bool) -> dict:
 
 @bp.get("/balance/results")
 def balance_results():
-    run = _balance_run()
+    report = _stored_balance()
     args = request.args
     distance = _int(args.get("range"), None)
     filters = {
-        "weapon": args.get("weapon") if args.get("weapon") in {w.name for w in Catalog.all()} else None,
+        "weapon": args.get("weapon") if args.get("weapon") in Catalog.names() else None,
         "range": distance if distance in RANGES else None,
-        "size": args.get("size") if args.get("size") in SIZE_LABELS else None,
+        "size": args.get("size") if args.get("size") in SIZES else None,
     }
     entries = []
-    if run:
+    if report:
         entries = [
             {**{key: row[key] for key in ("group", "weapon", "mode", "size")}, **cell}
-            for row in run["rows"]
+            for row in report["rows"]
             if filters["weapon"] in (None, row["weapon"]) and filters["size"] in (None, row["size"])
             for cell in row["ranges"]
             if filters["range"] in (None, cell["distance"])
@@ -364,7 +390,7 @@ def balance_results():
     start = (page - 1) * RESULTS_PER_PAGE
     return render_template(
         "balance_results.html",
-        run=run,
+        run=report,
         filters=filters,
         summary=combine([e["total"] for e in entries]),
         count=len(entries),
@@ -376,7 +402,7 @@ def balance_results():
         page=page,
         pages=pages,
         groups=Catalog.by_class(),
-        sizes=SIZE_LABELS,
+        sizes=SIZES,
         ranges=RANGES,
         magazines=MAGAZINES_PER_RANGE,
     )

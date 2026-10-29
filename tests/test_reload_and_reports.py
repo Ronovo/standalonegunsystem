@@ -4,12 +4,11 @@ import unittest
 from unittest import mock
 
 import gunsystem.simulation
+from demo.ui.weapons import interactive_reload
+from gunsystem import Catalog, FireMode, ReloadStep
 from gunsystem.dummy import Dummy
 from gunsystem.simulation import run_magazines, write_report
-from demo.ui.weapons import interactive_reload
-from gunsystem import Catalog, FireMode, ReloadStyle
-from tests.test_portfolio_login import PUBLIC_KEY, issue
-from webapp import create_app
+from tests.helpers import log_in, make_app
 from webapp import views
 
 
@@ -17,18 +16,18 @@ class ReloadStepTests(unittest.TestCase):
     def test_magazine_reloads_in_one_step(self):
         weapon = Catalog.create("M1911")
         weapon.current_ammo = 1
-        self.assertIs(weapon.next_reload_step(), ReloadStyle.MAGAZINE)
-        weapon.take_reload_step(ReloadStyle.MAGAZINE)
+        self.assertIs(weapon.next_reload_step(), ReloadStep.MAGAZINE)
+        self.assertEqual(weapon.take_reload_step(ReloadStep.MAGAZINE), "Weapon is reloaded!")
         self.assertIsNone(weapon.next_reload_step())
 
     def test_revolver_empties_then_loads_one_round_at_a_time(self):
         weapon = Catalog.create(".38 Special")
         weapon.current_ammo = 2
-        self.assertEqual(weapon.next_reload_step(), "empty")
-        weapon.take_reload_step("empty")
+        self.assertIs(weapon.next_reload_step(), ReloadStep.EMPTY)
+        weapon.take_reload_step(ReloadStep.EMPTY)
         self.assertEqual(weapon.current_ammo, 0)
-        self.assertIs(weapon.next_reload_step(loading=True), ReloadStyle.REVOLVER)
-        weapon.take_reload_step(ReloadStyle.REVOLVER)
+        self.assertIs(weapon.next_reload_step(loading=True), ReloadStep.ROUND)
+        self.assertEqual(weapon.take_reload_step(ReloadStep.ROUND), "One bullet loaded. 5 remaining.")
         self.assertEqual(weapon.current_ammo, 1)
 
     def test_terminal_reload_uses_the_same_steps(self):
@@ -43,10 +42,10 @@ class ReportFileTests(unittest.TestCase):
     def test_report_is_written_without_touching_stdout(self):
         weapon = Catalog.create("M1911")
         weapon.reload()
-        magazines = run_magazines(weapon, 1, Dummy("Small"), FireMode.SINGLE)
+        magazines = run_magazines(weapon, 1, Dummy("s"), FireMode.SINGLE)
         with tempfile.TemporaryDirectory() as folder, mock.patch.object(gunsystem.simulation, "REPORT_DIR",
                                                                          gunsystem.simulation.Path(folder)):
-            write_report(weapon, FireMode.SINGLE, "Small", [(50, magazines)])
+            write_report(weapon, FireMode.SINGLE, "s", [(50, magazines)])
             path = os.path.join(folder, weapon.weapon_type.class_name, "M1911", "Small", "Single Shot.txt")
             with open(path, encoding="utf-8") as report:
                 text = report.read()
@@ -56,7 +55,7 @@ class ReportFileTests(unittest.TestCase):
 
 class RangeSessionTests(unittest.TestCase):
     def setUp(self):
-        self.client = create_app({"TESTING": True, "SECRET_KEY": "test"}).test_client()
+        self.client = make_app(self).test_client()
         self.client.post("/range/setup", data={"weapon": "FN FAL", "size": "s", "distance": "50"})
 
     def test_a_bad_mode_in_the_cookie_starts_over_instead_of_failing(self):
@@ -76,22 +75,14 @@ class RangeSessionTests(unittest.TestCase):
 
 class BalanceAccessTests(unittest.TestCase):
     def setUp(self):
-        data_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
-        self.addCleanup(data_dir.cleanup)
-        env = mock.patch.dict(os.environ, {"PORTFOLIO_SSO_URL": "http://portfolio.test",
-                                           "PORTFOLIO_SSO_PUBLIC_KEY": PUBLIC_KEY})
-        env.start()
-        self.addCleanup(env.stop)
-        self.app = create_app({"TESTING": True, "SECRET_KEY": "test", "DATA_DIR": data_dir.name})
+        self.app = make_app(self, portfolio=True)
         small = mock.patch.object(views, "balance_runs", lambda: gunsystem.simulation.balance_runs(magazines_per_range=1))
         small.start()
         self.addCleanup(small.stop)
 
     def logged_in(self, sub):
         client = self.app.test_client()
-        location = client.get("/sso/login").location
-        state = location.split("state=")[1].split("&")[0]
-        client.post("/sso/callback", data={"state": state, "token": issue(sub)})
+        log_in(client, sub)
         return client
 
     def test_running_needs_a_login(self):
@@ -105,6 +96,14 @@ class BalanceAccessTests(unittest.TestCase):
         first.post("/balance")
         self.assertNotIn(b"No balance report has been run yet.", first.get("/balance/results").data)
         self.assertIn(b"No balance report has been run yet.", second.get("/balance/results").data)
+
+    def test_written_reports_land_in_the_report_folder(self):
+        client = self.logged_in("1")
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(views, "REPORT_DIR", folder), \
+                mock.patch.object(gunsystem.simulation, "REPORT_DIR", gunsystem.simulation.Path(folder)):
+            page = client.post("/balance", data={"write_files": "on"}, follow_redirects=True).data
+            self.assertTrue(os.path.exists(os.path.join(folder, "Sniper", "M40A3", "Small", "Single Shot.txt")))
+        self.assertIn(b"Text reports saved to", page)
 
     def test_only_one_run_at_a_time(self):
         client = self.logged_in("1")

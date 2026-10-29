@@ -2,18 +2,11 @@ import time
 
 from flask import session
 
-from gunsystem import Catalog, FireMode, ReloadStyle
-
+from gunsystem import Catalog, FireMode, ReloadStep
 from gunsystem.dummy import Dummy
 from gunsystem.simulation import AUTO_ROUNDS_PER_PULL, pull_trigger
 
 LOG_LENGTH = 6
-RELOAD_LABELS = {
-    "empty": "Empty cylinder",
-    ReloadStyle.MAGAZINE: "Reload magazine",
-    ReloadStyle.SHELL: "Load shell",
-    ReloadStyle.REVOLVER: "Load round",
-}
 
 
 class RangeSession:
@@ -120,20 +113,14 @@ class RangeSession:
             session["destroyed"] = session.get("destroyed", 0) + 1
         return None
 
-    def reload_step(self) -> str | ReloadStyle | None:
-        """Key into RELOAD_LABELS for the next reload action, or None when the weapon is full."""
-        return self.weapon.next_reload_step(self.state.get("reloading", False))
+    def reload_step(self) -> ReloadStep | None:
+        """The next reload action, or None when the weapon is full."""
+        return self.weapon.next_reload_step(self.state["reloading"])
 
     def reload(self) -> str:
         step = self.reload_step()
-        weapon = self.weapon
         if step is None:
             return "Ammo already full. No need to reload."
-        weapon.take_reload_step(step)
-        if step is ReloadStyle.MAGAZINE:
-            return "Weapon is reloaded!"
-        self.state["reloading"] = weapon.current_ammo < weapon.max_ammo
-        if step == "empty":
-            return "Gun unloaded. Load rounds one at a time."
-        noun = "shell" if step is ReloadStyle.SHELL else "bullet"
-        return f"One {noun} loaded. {weapon.max_ammo - weapon.current_ammo} remaining."
+        message = self.weapon.take_reload_step(step)
+        self.state["reloading"] = step is not ReloadStep.MAGAZINE and self.weapon.current_ammo < self.weapon.max_ammo
+        return message

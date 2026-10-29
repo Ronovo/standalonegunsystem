@@ -4,7 +4,7 @@ import random
 from dataclasses import dataclass
 from typing import Optional
 
-from gunsystem.target import SIZE_MODIFIERS, Target
+from gunsystem.target import SIZES, Target
 from gunsystem.weapon import FireMode, Weapon, WeaponType
 
 _RNG = random.Random()
@@ -34,7 +34,7 @@ def apply_range_modifier(
 
 
 def apply_size_modifier(size: str, base_result: float) -> float:
-    return base_result * SIZE_MODIFIERS[size]
+    return base_result * SIZES[size].to_hit
 
 
 def apply_spray(base_result: float, shots_in_string: int) -> float:

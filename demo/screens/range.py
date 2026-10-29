@@ -1,9 +1,8 @@
 from gunsystem import FireMode, Weapon
-
 from gunsystem.dummy import Dummy
-from demo.dummy_catalog import prompt_dummy_range, prompt_new_dummy
 from gunsystem.simulation import pull_trigger
 from demo.ui import formatter
+from demo.ui.dummies import prompt_dummy_range, prompt_new_dummy
 from demo.ui.weapons import get_selected_weapon, interactive_reload, print_range_display, set_fire_mode
 
 destroyed_dummy = 0
@@ -35,7 +34,7 @@ def range_main() -> None:
         formatter.clear()
         match answer:
             case "1":
-                new_dummy = shoot_dummy(new_dummy, selected_weapon, fire_mode)
+                shoot_dummy(new_dummy, selected_weapon, fire_mode)
             case "2":
                 print("Current Fire Mode is " + fire_mode.display_name)
                 new_mode = set_fire_mode(selected_weapon)
@@ -48,7 +47,6 @@ def range_main() -> None:
                 print("Ammo before reload is : " + str(selected_weapon.current_ammo))
                 if interactive_reload(selected_weapon):
                     print("Current Ammo is : " + str(selected_weapon.current_ammo))
-                    print("Weapon is reloaded!")
             case "5":
                 print_range_display(selected_weapon)
             case "6":
@@ -83,10 +81,10 @@ def _requested_shots() -> int:
         return 1
 
 
-def shoot_dummy(new_dummy: Dummy, selected_weapon: Weapon, fire_mode: FireMode) -> Dummy:
+def shoot_dummy(new_dummy: Dummy, selected_weapon: Weapon, fire_mode: FireMode) -> None:
     if selected_weapon.current_ammo == 0:
         print("Out of Ammo! Try Reloading")
-        return new_dummy
+        return
 
     requested = _requested_shots() if fire_mode is FireMode.AUTO else 1
     input("Press any key to shoot")
@@ -100,7 +98,3 @@ def shoot_dummy(new_dummy: Dummy, selected_weapon: Weapon, fire_mode: FireMode) 
             print("Dummy health is now " + str(health) + "\n")
         else:
             print("Miss!\n")
-    if new_dummy.is_destroyed():
-        print("Dummy destroyed!")
-
-    return new_dummy

@@ -3,10 +3,11 @@ from pathlib import Path
 from typing import Iterator
 
 from gunsystem import Catalog, FireMode, ShotResult, Weapon, advance_string, resolve_shot
-
-from gunsystem.dummy import RANGES, SIZE_LABELS, Dummy
+from gunsystem.dummy import RANGES, Dummy
+from gunsystem.target import SIZES
 
 MAGAZINES_PER_RANGE = 15
+MAX_BULK_SHOTS = 1000
 REPORT_DIR = Path("Balance Reports")
 RULE = "-" * 36
 # Rounds per trigger pull on full auto: the range's starting setting, and what reports and bulk fire use.
@@ -48,7 +49,7 @@ def report_lines(magazines: list[MagazineResult]) -> list[str]:
             f"{magazine.destroyed} Dummies Destroyed / {magazine.damage} Damage Done"
         )
         if magazine.crits > 0:
-            line += f"/ Critical Hits : {magazine.crits}"
+            line += f" / Critical Hits: {magazine.crits}"
         lines.append(line)
     totals = combine(magazines)
     return lines + [
@@ -64,10 +65,10 @@ def report_lines(magazines: list[MagazineResult]) -> list[str]:
 def write_report(
     weapon: Weapon,
     fire_mode: FireMode,
-    size_label: str,
+    size: str,
     ranges: list[tuple[int, list[MagazineResult]]],
 ) -> None:
-    report_dir = REPORT_DIR / weapon.weapon_type.class_name / weapon.name / size_label
+    report_dir = REPORT_DIR / weapon.weapon_type.class_name / weapon.name / SIZES[size].label
     report_dir.mkdir(parents=True, exist_ok=True)
     lines = [f"Balance Report for {weapon.name}", RULE, ""]
     for distance, magazines in ranges:
@@ -76,9 +77,11 @@ def write_report(
 
 
 def plan_magazines(max_ammo: int, total_shots: int) -> tuple[int, int]:
-    """Return (magazine_count, ammo_in_first_magazine). Fewer than 1 shot means one full magazine."""
+    """Return (magazine_count, ammo_in_first_magazine). Fewer than 1 shot means one full magazine, and more than
+    MAX_BULK_SHOTS means MAX_BULK_SHOTS."""
     if total_shots < 1:
         total_shots = max_ammo
+    total_shots = min(total_shots, MAX_BULK_SHOTS)
     if total_shots < max_ammo:
         return 1, total_shots
     magazine_count = total_shots // max_ammo
@@ -149,11 +152,11 @@ def balance_runs(
     for weapon in Catalog.all():
         weapon.reload()
         for fire_mode in weapon.fire_modes:
-            for size_label in SIZE_LABELS:
-                dummy = Dummy(size_label)
+            for size in SIZES:
+                dummy = Dummy(size)
                 ranges = []
                 for distance in RANGES:
                     dummy.distance = distance
                     ranges.append((distance, run_magazines(weapon, magazines_per_range, dummy, fire_mode)))
                     weapon.reload()
-                yield weapon, fire_mode, size_label, ranges
+                yield weapon, fire_mode, size, ranges

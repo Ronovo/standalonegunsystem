@@ -1,18 +1,14 @@
-import tempfile
 import unittest
 from unittest import mock
 
 from gunsystem import Catalog
-
-from gunsystem.simulation import balance_runs
-from webapp import create_app
+from gunsystem.simulation import MAX_BULK_SHOTS, balance_runs
+from tests.helpers import make_app
 
 
 class WebAppTests(unittest.TestCase):
     def setUp(self):
-        data_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
-        self.addCleanup(data_dir.cleanup)
-        self.client = create_app({"TESTING": True, "SECRET_KEY": "test", "DATA_DIR": data_dir.name}).test_client()
+        self.client = make_app(self).test_client()
 
     def range_state(self):
         with self.client.session_transaction() as session:
@@ -69,6 +65,14 @@ class WebAppTests(unittest.TestCase):
         self.assertEqual(state["mode"], "fa")
         self.assertEqual(state["ammo"], 88)
         self.assertEqual(len(state["log"][0]["marks"]), 12)
+
+    def test_next_fire_mode_cycles_through_the_weapon_modes(self):
+        self.enter_range(weapon="AK47")
+        modes = []
+        for _ in range(3):
+            self.client.post("/range/mode", data={"mode": "next"})
+            modes.append(self.range_state()["mode"])
+        self.assertEqual(modes, ["3r", "fa", "s"])
 
     def test_unavailable_fire_mode_is_rejected(self):
         self.enter_range(weapon="M1911")
@@ -127,6 +131,10 @@ class WebAppTests(unittest.TestCase):
         self.assertIn("BREAKDOWN BY MAGAZINE", page)
         self.assertIn("<th>65</th>", page)
 
+    def test_bulk_report_is_capped(self):
+        page = self.client.get("/bulk/MP5", query_string={"shots": 10 ** 9}).get_data(as_text=True)
+        self.assertIn(f"<th>{MAX_BULK_SHOTS}</th>", page)
+
     def test_balance_report_runs_and_filters(self):
         small_runs = lambda: balance_runs(magazines_per_range=1)
         with mock.patch("webapp.views.balance_runs", small_runs):
@@ -134,8 +142,14 @@ class WebAppTests(unittest.TestCase):
         page = response.get_data(as_text=True)
         self.assertIn("Report finished.", page)
         self.assertIn("M40A3", page)
-        page = self.client.get("/balance", query_string={"size": "Large", "metric": "damage"}).get_data(as_text=True)
-        self.assertIn('class="chip active" href="/balance?size=Large&amp;metric=damage"', page)
+        page = self.client.get("/balance", query_string={"size": "l", "metric": "damage"}).get_data(as_text=True)
+        self.assertIn('class="chip active" href="/balance?size=l&amp;metric=damage"', page)
+
+    def test_a_balance_run_keeps_only_the_page_arguments(self):
+        with mock.patch("webapp.views.balance_runs", lambda: balance_runs(magazines_per_range=1)):
+            response = self.client.post("/balance?_method=FOO&size=l")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/balance?size=l"))
 
     def run_small_balance(self, magazines=2):
         with mock.patch("webapp.views.balance_runs", lambda: balance_runs(magazines_per_range=magazines)):
@@ -148,7 +162,7 @@ class WebAppTests(unittest.TestCase):
     def test_results_filters_and_magazine_breakdown(self):
         self.run_small_balance(magazines=3)
         page = self.client.get(
-            "/balance/results", query_string={"weapon": "M40A3", "range": 500, "size": "Small"}
+            "/balance/results", query_string={"weapon": "M40A3", "range": 500, "size": "s"}
         ).get_data(as_text=True)
         self.assertIn("RESULTS · 1-1 OF 1", page)
         self.assertEqual(page.count('<details class="result">'), 1)

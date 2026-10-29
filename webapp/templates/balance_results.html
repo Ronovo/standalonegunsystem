@@ -37,8 +37,8 @@
     <label class="inline-field"><span class="key">3.)</span> Dummy
       <select name="size" data-key="3" data-focus>
         <option value="">All sizes</option>
-        {% for name in sizes %}
-          <option {% if name == filters.size %}selected{% endif %}>{{ name }}</option>
+        {% for code, option in sizes.items() %}
+          <option value="{{ code }}" {% if code == filters.size %}selected{% endif %}>{{ option.label }}</option>
         {% endfor %}
       </select>
     </label>
@@ -60,8 +60,8 @@
     </div>
     <p class="meter">{{ summary.accuracy|round|int|bar(100, 40) }}</p>
     {% if best %}
-      <p><span class="caption">Best</span>{{ best.weapon }} ({{ best.mode }}) vs {{ best.size|lower }} dummy at {{ best.distance }} m: <span class="{{ best.total|accuracy_class }}">{{ best.total.accuracy }}%</span></p>
-      <p><span class="caption">Worst</span>{{ worst.weapon }} ({{ worst.mode }}) vs {{ worst.size|lower }} dummy at {{ worst.distance }} m: <span class="{{ worst.total|accuracy_class }}">{{ worst.total.accuracy }}%</span></p>
+      <p><span class="caption">Best</span>{{ best.weapon }} ({{ best.mode }}) vs {{ sizes[best.size].label|lower }} dummy at {{ best.distance }} m: <span class="{{ best.total|accuracy_class }}">{{ best.total.accuracy }}%</span></p>
+      <p><span class="caption">Worst</span>{{ worst.weapon }} ({{ worst.mode }}) vs {{ sizes[worst.size].label|lower }} dummy at {{ worst.distance }} m: <span class="{{ worst.total|accuracy_class }}">{{ worst.total.accuracy }}%</span></p>
     {% endif %}
     {% if no_hits %}<p class="muted">{{ no_hits }} result{{ "s" if no_hits != 1 }} landed no hits (out of range or zero damage) and are left out of best/worst.</p>{% endif %}
   {% else %}
@@ -84,7 +84,7 @@
       <summary class="result-grid">
         <span>{{ entry.weapon }}</span>
         <span class="muted">{{ entry.mode }}</span>
-        <span>{{ entry.size }}</span>
+        <span>{{ sizes[entry.size].label }}</span>
         <span class="num">{{ entry.distance }} m</span>
         <span class="num">{{ total.shots }}</span>
         <span class="num {{ total|accuracy_class }}">{{ total.accuracy }}%</span>

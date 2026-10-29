@@ -1,11 +1,17 @@
 import unittest
-
-from gunsystem.dummy import Dummy, size_code, size_label
 from unittest import mock
 
 import gunsystem.simulation
-from gunsystem.simulation import AUTO_ROUNDS_PER_PULL, plan_magazines, run_magazines
 from gunsystem import Catalog, FireMode, advance_string, resolve_shot
+from gunsystem.dummy import Dummy, size_code
+from gunsystem.simulation import (
+    AUTO_ROUNDS_PER_PULL,
+    MAX_BULK_SHOTS,
+    MagazineResult,
+    plan_magazines,
+    report_lines,
+    run_magazines,
+)
 
 
 class MagazinePlanTests(unittest.TestCase):
@@ -24,6 +30,9 @@ class MagazinePlanTests(unittest.TestCase):
         self.assertEqual(count, 2)
         self.assertEqual(first, 5)
 
+    def test_bulk_fire_is_capped(self):
+        self.assertEqual(plan_magazines(100, 10 ** 9), (MAX_BULK_SHOTS // 100, 100))
+
 
 class DummyInstanceTests(unittest.TestCase):
     def test_dummies_do_not_share_health(self):
@@ -39,10 +48,17 @@ class DummyInstanceTests(unittest.TestCase):
         large.reset_health()
         self.assertEqual(large.health, 275)
 
-    def test_sizes_read_as_codes_or_labels(self):
-        self.assertEqual((size_code("l"), size_code("Large"), size_code("huge")), ("l", "l", "m"))
-        self.assertEqual((size_label("s"), size_label("Small"), size_label(None)), ("Small", "Small", "Medium"))
-        self.assertEqual(Dummy("Large").max_health, 275)
+    def test_anything_but_a_size_code_reads_as_medium(self):
+        self.assertEqual((size_code("l"), size_code("Large"), size_code(None)), ("l", "m", "m"))
+        self.assertEqual(Dummy("l").size_label, "Large")
+        with self.assertRaises(ValueError):
+            Dummy("Large")
+
+
+class ReportLineTests(unittest.TestCase):
+    def test_critical_hits_are_listed_after_the_damage(self):
+        line = report_lines([MagazineResult(hits=2, misses=1, damage=300, crits=1)])[2]
+        self.assertEqual(line, "Magazine 1: 2 Hits / 1 Misses / 0 Dummies Destroyed / 300 Damage Done / Critical Hits: 1")
 
 
 class SprayStringTests(unittest.TestCase):

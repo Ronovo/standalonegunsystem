@@ -1,36 +1,21 @@
-from gunsystem import Target
+from gunsystem.target import SIZES, Target
 
-SIZE_STATS = {
-    "s": ("Small", 125),
-    "m": ("Medium", 200),
-    "l": ("Large", 275),
-}
-
-SIZE_LABELS = tuple(label for label, _ in SIZE_STATS.values())
 RANGES = (50, 100, 150, 200, 300, 400, 500)
 
 
 def size_code(value) -> str:
-    """The code for a size given as a code or a label ("s" or "Small"), or "m" for anything else."""
-    for code, (label, _) in SIZE_STATS.items():
-        if value in (code, label):
-            return code
-    return "m"
-
-
-def size_label(value) -> str:
-    """The label for a size given as a code or a label, or "Medium" for anything else."""
-    return SIZE_STATS[size_code(value)][0]
+    """value when it is a size code, else "m"."""
+    return value if value in SIZES else "m"
 
 
 class Dummy(Target):
     def __init__(self, size: str = "m", distance: int = RANGES[0]):
-        size = size_code(size)
         super().__init__(distance, size)
-        label, health = SIZE_STATS[size]
-        self.size_label = label
-        self.max_health = health
-        self.health = health
+        self.max_health = self.health = SIZES[size].health
+
+    @property
+    def size_label(self) -> str:
+        return SIZES[self.size].label
 
     def take_damage(self, damage: int) -> None:
         self.health -= damage
@@ -40,4 +25,3 @@ class Dummy(Target):
 
     def is_destroyed(self) -> bool:
         return self.health <= 0
-

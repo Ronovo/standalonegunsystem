@@ -1,5 +1,4 @@
-from gunsystem import Catalog, FireMode, ReloadStyle, Weapon
-
+from gunsystem import Catalog, FireMode, ReloadStep, ReloadStyle, Weapon
 from demo.ui import formatter
 
 
@@ -7,7 +6,7 @@ def weapon_type_menu() -> list[str]:
     print("Please select a weapon type:")
     print("----------------------")
     choice = formatter.choose(list(Catalog.CATEGORIES), invalid="Incorrect choice. Returning to Menu", retry=False)
-    return [] if choice is None else Catalog.names_by_category(Catalog.CATEGORIES[choice])
+    return [] if choice is None else Catalog.names(Catalog.CATEGORIES[choice])
 
 
 def select_weapon_menu(weapon_list: list[str]) -> int | None:
@@ -48,15 +47,10 @@ def interactive_reload(weapon: Weapon) -> bool:
     elif weapon.reload_style is ReloadStyle.REVOLVER:
         print("Revolvers unload when reloaded and must be manually loaded")
         print("----------------------------------------------------------")
-    noun = "shell" if weapon.reload_style is ReloadStyle.SHELL else "bullet"
     while step is not None:
-        if step in (ReloadStyle.SHELL, ReloadStyle.REVOLVER):
-            input(f"Press any button to load a {noun}")
-        weapon.take_reload_step(step)
-        if step == "empty":
-            print("Gun unloaded")
-        elif step is not ReloadStyle.MAGAZINE:
-            print(f"One {noun} loaded. {weapon.max_ammo - weapon.current_ammo} remaining")
+        if step in (ReloadStep.SHELL, ReloadStep.ROUND):
+            input(f"Press any button to load a {'shell' if step is ReloadStep.SHELL else 'bullet'}")
+        print(weapon.take_reload_step(step))
         step = weapon.next_reload_step(loading=True)
     return True
 
