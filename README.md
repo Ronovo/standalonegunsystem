@@ -144,3 +144,7 @@ pull starts a new string just as it does on the range.
 - M249 SAW
 - M60E4
 - RPD
+
+## License
+
+BSD 2-Clause. See [LICENSE](LICENSE).
