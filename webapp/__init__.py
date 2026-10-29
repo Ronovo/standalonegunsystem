@@ -13,6 +13,7 @@ def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.environ.get("GUNSYSTEM_SECRET_KEY") or os.urandom(24).hex()
     app.config["DATA_DIR"] = os.environ.get("DATA_DIR", "data")
+    app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SECURE_COOKIES") == "1"
     if config:
         app.config.update(config)
 
