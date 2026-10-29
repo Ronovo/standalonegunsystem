@@ -7,6 +7,8 @@ from typing import Optional
 from gunsystem.target import SIZE_MODIFIERS, Target
 from gunsystem.weapon import FireMode, Weapon, WeaponType
 
+_RNG = random.Random()
+
 
 @dataclass(frozen=True)
 class ShotResult:
@@ -26,10 +28,8 @@ def apply_range_modifier(
         base_result += weapon_type.close_range_step * steps
         if base_result < 0:
             base_result = 0
-    elif distance > range_m:
-        far_range = distance - range_m
-        steps = far_range // 50
-        base_result += 10 * steps
+    else:
+        base_result += 10 * far_range_steps(distance, range_m)
     return base_result
 
 
@@ -51,13 +51,13 @@ def apply_spray(base_result: float, shots_in_string: int) -> float:
     return base_result
 
 
+def far_range_steps(distance: int, range_m: int) -> int:
+    """Whole 50 m bands past the weapon's effective range."""
+    return max(0, distance - range_m) // 50
+
+
 def compute_damage(distance: int, range_m: int, weapon_damage: int) -> int:
-    damage = weapon_damage
-    if distance > range_m:
-        far_range = distance - range_m
-        steps = far_range // 50
-        damage -= 25 * steps
-    return max(0, damage)
+    return max(0, weapon_damage - 25 * far_range_steps(distance, range_m))
 
 
 def advance_string(fire_mode: FireMode, shots_in_string: int) -> int:
@@ -75,7 +75,7 @@ def resolve_shot(
     rng: Optional[random.Random] = None,
 ) -> ShotResult:
     """Fire one round if ammo remains. Out of max range or zero damage after falloff is a miss."""
-    rng = rng or random.Random()
+    rng = rng or _RNG
     if not weapon.fire_shot():
         return _miss(weapon, fired=False)
 

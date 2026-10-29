@@ -1,8 +1,11 @@
 import unittest
 
-from demo.dummy import Dummy
-from demo.simulation import plan_magazines
-from gunsystem import FireMode, advance_string
+from gunsystem.dummy import Dummy, size_code, size_label
+from unittest import mock
+
+import gunsystem.simulation
+from gunsystem.simulation import AUTO_ROUNDS_PER_PULL, plan_magazines, run_magazines
+from gunsystem import Catalog, FireMode, advance_string, resolve_shot
 
 
 class MagazinePlanTests(unittest.TestCase):
@@ -36,6 +39,11 @@ class DummyInstanceTests(unittest.TestCase):
         large.reset_health()
         self.assertEqual(large.health, 275)
 
+    def test_sizes_read_as_codes_or_labels(self):
+        self.assertEqual((size_code("l"), size_code("Large"), size_code("huge")), ("l", "l", "m"))
+        self.assertEqual((size_label("s"), size_label("Small"), size_label(None)), ("Small", "Small", "Medium"))
+        self.assertEqual(Dummy("Large").max_health, 275)
+
 
 class SprayStringTests(unittest.TestCase):
     def test_burst_cycles_every_three_shots(self):
@@ -53,6 +61,23 @@ class SprayStringTests(unittest.TestCase):
     def test_auto_increments(self):
         self.assertEqual(advance_string(FireMode.AUTO, 0), 1)
         self.assertEqual(advance_string(FireMode.AUTO, 10), 11)
+
+
+class ReportFiringTests(unittest.TestCase):
+    def test_full_auto_reports_restart_the_string_every_pull(self):
+        weapon = next(w for w in Catalog.all() if FireMode.AUTO in w.fire_modes and w.max_ammo > AUTO_ROUNDS_PER_PULL)
+        weapon.reload()
+        strings = []
+
+        def recording_shot(weapon, dummy, shots_in_string):
+            strings.append(shots_in_string)
+            return resolve_shot(weapon, dummy, shots_in_string)
+
+        with mock.patch.object(gunsystem.simulation, "resolve_shot", recording_shot):
+            run_magazines(weapon, 3, Dummy(), FireMode.AUTO)
+        self.assertEqual(len(strings), 3 * weapon.max_ammo)
+        self.assertLessEqual(max(strings), AUTO_ROUNDS_PER_PULL)
+        self.assertGreater(max(strings), 1)
 
 
 if __name__ == "__main__":

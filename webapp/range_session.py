@@ -4,8 +4,8 @@ from flask import session
 
 from gunsystem import Catalog, FireMode, ReloadStyle
 
-from demo.dummy import Dummy
-from demo.simulation import pull_trigger
+from gunsystem.dummy import Dummy
+from gunsystem.simulation import AUTO_ROUNDS_PER_PULL, pull_trigger
 
 LOG_LENGTH = 6
 RELOAD_LABELS = {
@@ -25,6 +25,8 @@ class RangeSession:
         self.weapon.current_ammo = state["ammo"]
         self.dummy = Dummy(state["size"], state["distance"])
         self.dummy.health = state["health"]
+        if FireMode(state["mode"]) not in self.weapon.fire_modes:
+            raise ValueError("fire mode not on this weapon")
 
     @classmethod
     def load(cls) -> "RangeSession | None":
@@ -41,19 +43,19 @@ class RangeSession:
     def start(cls, weapon_name: str, size: str, distance: int) -> "RangeSession":
         weapon = Catalog.create(weapon_name)
         dummy = Dummy(size, distance)
-        range_session = cls(
+        return cls(
             {
                 "weapon": weapon.name,
                 "ammo": weapon.max_ammo,
+                "mode": weapon.fire_modes[0].value,
+                "reloading": False,
                 "size": dummy.size,
                 "distance": dummy.distance,
                 "health": dummy.max_health,
                 "log": [],
-                "rounds": min(10, weapon.max_ammo),
+                "rounds": min(AUTO_ROUNDS_PER_PULL, weapon.max_ammo),
             }
         )
-        range_session.equip(weapon_name)
-        return range_session
 
     def save(self) -> None:
         self.state.update(
@@ -99,6 +101,7 @@ class RangeSession:
             return "The dummy is already destroyed. Set up a new one."
         if self.weapon.current_ammo == 0:
             return "Out of Ammo! Try Reloading."
+        requested = min(max(requested, 1), self.weapon.max_ammo)
         if self.fire_mode is FireMode.AUTO:
             self.state["rounds"] = requested
         shots = pull_trigger(self.weapon, self.dummy, self.fire_mode, requested)
@@ -119,26 +122,18 @@ class RangeSession:
 
     def reload_step(self) -> str | ReloadStyle | None:
         """Key into RELOAD_LABELS for the next reload action, or None when the weapon is full."""
-        weapon = self.weapon
-        if weapon.current_ammo == weapon.max_ammo:
-            return None
-        if weapon.reload_style is ReloadStyle.REVOLVER and weapon.current_ammo > 0 and not self.state.get("reloading"):
-            return "empty"
-        return weapon.reload_style
+        return self.weapon.next_reload_step(self.state.get("reloading", False))
 
     def reload(self) -> str:
         step = self.reload_step()
         weapon = self.weapon
         if step is None:
             return "Ammo already full. No need to reload."
-        if step == "empty":
-            weapon.unload()
-            self.state["reloading"] = True
-            return "Gun unloaded. Load rounds one at a time."
+        weapon.take_reload_step(step)
         if step is ReloadStyle.MAGAZINE:
-            weapon.reload()
             return "Weapon is reloaded!"
-        weapon.load_round()
         self.state["reloading"] = weapon.current_ammo < weapon.max_ammo
+        if step == "empty":
+            return "Gun unloaded. Load rounds one at a time."
         noun = "shell" if step is ReloadStyle.SHELL else "bullet"
         return f"One {noun} loaded. {weapon.max_ammo - weapon.current_ammo} remaining."

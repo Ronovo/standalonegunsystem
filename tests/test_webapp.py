@@ -1,15 +1,18 @@
+import tempfile
 import unittest
 from unittest import mock
 
 from gunsystem import Catalog
 
-from demo.simulation import balance_runs
+from gunsystem.simulation import balance_runs
 from webapp import create_app
 
 
 class WebAppTests(unittest.TestCase):
     def setUp(self):
-        self.client = create_app({"TESTING": True, "SECRET_KEY": "test"}).test_client()
+        data_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(data_dir.cleanup)
+        self.client = create_app({"TESTING": True, "SECRET_KEY": "test", "DATA_DIR": data_dir.name}).test_client()
 
     def range_state(self):
         with self.client.session_transaction() as session:

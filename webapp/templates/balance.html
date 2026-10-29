@@ -6,10 +6,14 @@
 <section class="panel">
   <h1 class="panel-title">BALANCE REPORT</h1>
   <p>This will fire {{ magazines }} magazines for every weapon and fire mode, at every dummy size and every range ({{ ranges|join(", ") }} m).</p>
+  {% if can_run %}
   <form method="post" class="menu-row" data-busy="Running the report… this takes a few seconds">
     <button class="menu-item primary" data-key="1"><span class="key">1.)</span><span class="label">{{ "Run it again" if run else "Run balance report" }}</span></button>
     <label class="chip"><input type="checkbox" name="write_files"> Also save text reports to <code>{{ report_dir }}/</code></label>
   </form>
+  {% else %}
+  <p class="muted">Log in with your portfolio account to run a balance report. Each account keeps its own results.</p>
+  {% endif %}
   {% if run %}
     <p class="muted">Last run finished at {{ run.finished }} in {{ run.seconds }} s.</p>
     <ol class="menu">

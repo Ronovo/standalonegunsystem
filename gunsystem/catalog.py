@@ -79,3 +79,12 @@ class Catalog:
     @classmethod
     def all(cls) -> list[Weapon]:
         return [_from_spec(spec) for spec in _WEAPONS]
+
+    @classmethod
+    def by_class(cls, category: str | None = None) -> dict[str, list[Weapon]]:
+        """Weapons grouped by class name, optionally only those in one category."""
+        groups: dict[str, list[Weapon]] = {}
+        for weapon in cls.all():
+            if category is None or weapon.weapon_type.category == category:
+                groups.setdefault(weapon.weapon_type.class_name, []).append(weapon)
+        return groups

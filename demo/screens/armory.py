@@ -12,6 +12,6 @@ def armory_main_menu() -> None:
         print("Weapons List")
         print("----------------------")
         choice = select_weapon_menu(weapon_list)
-        if choice == 0:
+        if choice is None:
             return
-        print_armory_display(weapon_list[choice - 1])
+        print_armory_display(weapon_list[choice])

@@ -7,14 +7,25 @@ SIZE_STATS = {
 }
 
 SIZE_LABELS = tuple(label for label, _ in SIZE_STATS.values())
-SIZE_CODES = {label: code for code, (label, _) in SIZE_STATS.items()}
 RANGES = (50, 100, 150, 200, 300, 400, 500)
+
+
+def size_code(value) -> str:
+    """The code for a size given as a code or a label ("s" or "Small"), or "m" for anything else."""
+    for code, (label, _) in SIZE_STATS.items():
+        if value in (code, label):
+            return code
+    return "m"
+
+
+def size_label(value) -> str:
+    """The label for a size given as a code or a label, or "Medium" for anything else."""
+    return SIZE_STATS[size_code(value)][0]
 
 
 class Dummy(Target):
     def __init__(self, size: str = "m", distance: int = RANGES[0]):
-        if size not in SIZE_STATS:
-            size = "m"
+        size = size_code(size)
         super().__init__(distance, size)
         label, health = SIZE_STATS[size]
         self.size_label = label
@@ -30,6 +41,3 @@ class Dummy(Target):
     def is_destroyed(self) -> bool:
         return self.health <= 0
 
-
-def create_dummy(size_label: str, distance: int = RANGES[0]) -> Dummy:
-    return Dummy(SIZE_CODES.get(size_label, "m"), distance)

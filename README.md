@@ -43,7 +43,7 @@ Simple weapons system built in Python. The `gunsystem` library can be imported i
   - When a different account logs in on the same browser, the progress kept there for the last account stays with that account instead of joining the new one
 
 ### 5.) Terminal version
-  - Run `python ./main.py` (or `python -m demo`)
+  - Run `python -m demo`
   - The game starts in your terminal window
 
 ## Using as a library
@@ -59,6 +59,9 @@ result = resolve_shot(gun, Target(distance=100, size="m"))
 
 `result` has `hit`, `damage`, `critical`, `remaining_ammo`, and `fired` (False when the weapon was empty).
 
+`gunsystem.dummy` (practice dummies and their sizes) and `gunsystem.simulation` (magazine runs and the balance
+reports) are the parts the terminal and web versions share.
+
 ## Tests
 From the repo root, with the web extras installed:
 
@@ -73,8 +76,8 @@ python -m unittest discover -s tests -t .
 4. Damage drops by 25 for every 50 m past the gun's range, and a hit that does 0 damage counts as a miss.
 5. A hit has a 1 in 200 chance to be critical: x3 damage 80% of the time, x2 the rest.
 
-Bulk fire and balance reports treat a whole magazine as one string on full auto, so they spray more than the
-range does, where each trigger pull starts a new string.
+On full auto, bulk fire and balance reports fire in 10-round trigger pulls, the range's starting setting, and each
+pull starts a new string just as it does on the range.
 
 ## V1.5 Features
 - Hit Calculation
@@ -87,6 +90,7 @@ range does, where each trigger pull starts a new string.
   - Bulk Firing Options Per Gun
 - Balance Report Functionality
     - Creates one report per weapon, dummy size and firing mode, in `Balance Reports/<Class>/<Weapon>/<Size>/<Mode>.txt` under the folder you run it from
+    - In the browser, with portfolio login set up, running one needs a portfolio login, only one runs at a time, and each account sees its own latest results
     - Each Report includes stats for 15 Full Magazines shot at:
         - Each Type of Dummy
         - Every Range listed in the Range Menu

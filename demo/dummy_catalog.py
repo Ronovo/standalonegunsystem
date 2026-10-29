@@ -1,28 +1,15 @@
-from demo.dummy import SIZE_STATS, Dummy, RANGES
+from gunsystem.dummy import SIZE_STATS, Dummy, RANGES
+from demo.ui import formatter
 
 
 def prompt_dummy_range(dummy: Dummy, debug: bool = False) -> None:
-    back = len(RANGES) + 1
-    while True:
-        print("Please select distance for dummy")
-        print("----------")
-        for index, distance in enumerate(RANGES, start=1):
-            print(f"{index}.) {distance} Meters")
-        print(f"{back}.) return \n")
-        answer = input(f"Pick 1-{back}\n")
-        try:
-            choice = int(answer)
-        except ValueError:
-            print("Incorrect choice. Try again.")
-            continue
-        if 1 <= choice <= len(RANGES):
-            dummy.distance = RANGES[choice - 1]
-            if debug:
-                print(f"Dummy has been set to range of {dummy.distance}")
-            return
-        if choice == back:
-            return
-        print("Incorrect choice. Try again.")
+    print("Please select distance for dummy")
+    print("----------")
+    choice = formatter.choose([f"{distance} Meters" for distance in RANGES], back="return")
+    if choice is not None:
+        dummy.distance = RANGES[choice]
+        if debug:
+            print(f"Dummy has been set to range of {dummy.distance}")
 
 
 def prompt_new_dummy(debug: bool = False, distance: int | None = None) -> Dummy:

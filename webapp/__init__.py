@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, redirect, session, url_for
+from flask import Flask, g, redirect, session, url_for
 
 from ronovo_portfolio_auth import portfolio_sso
 
@@ -28,6 +28,7 @@ def add_portfolio_login(app: Flask) -> None:
     """The range and destroyed count live in the browser's session cookie. While logged in with a portfolio
     account they are also kept for it; logging in on another browser takes whichever range is newer and the
     higher destroyed count."""
+    app.extensions["portfolio_login"] = True
     os.makedirs(app.config["DATA_DIR"], exist_ok=True)
     players = Players(os.path.join(app.config["DATA_DIR"], "players.db"))
 
@@ -68,8 +69,13 @@ def add_portfolio_login(app: Flask) -> None:
     def inject_portfolio():
         return {"portfolio": True, "portfolio_url": portfolio_sso.portfolio_url()}
 
+    @app.before_request
+    def note_saved_at():
+        g.saved_at = session.get("saved_at")
+
+    # Only requests that changed the range (and so its saved_at) write the account's copy.
     @app.after_request
     def save_progress(response):
-        if session.modified and session.get("portfolio_sub"):
+        if session.get("portfolio_sub") and session.get("saved_at") != g.get("saved_at"):
             players.store(session["portfolio_sub"], progress(), session.get("saved_at", 0))
         return response

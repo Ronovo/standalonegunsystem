@@ -6,38 +6,12 @@ from demo.ui import formatter
 def weapon_type_menu() -> list[str]:
     print("Please select a weapon type:")
     print("----------------------")
-    for index, category in enumerate(Catalog.CATEGORIES, start=1):
-        print(f"{index}.) {category}")
-    category_count = len(Catalog.CATEGORIES)
-    answer = input(f"Pick 1-{category_count}\n")
-    try:
-        choice = int(answer)
-    except ValueError:
-        print("Incorrect choice. Returning to Menu")
-        return []
-    if not 1 <= choice <= category_count:
-        print("Incorrect choice. Returning to Menu")
-        return []
-    return Catalog.names_by_category(Catalog.CATEGORIES[choice - 1])
+    choice = formatter.choose(list(Catalog.CATEGORIES), invalid="Incorrect choice. Returning to Menu", retry=False)
+    return [] if choice is None else Catalog.names_by_category(Catalog.CATEGORIES[choice])
 
 
-def select_weapon_menu(weapon_list: list[str]) -> int:
-    while True:
-        for index, name in enumerate(weapon_list, start=1):
-            print(f"{index}.) {name}")
-        back = len(weapon_list) + 1
-        print(f"{back}.) Return to Main Menu")
-        answer = input(f"Pick 1-{back}\n")
-        if answer == str(back):
-            return 0
-        try:
-            choice = int(answer)
-        except ValueError:
-            print("Please enter a valid number")
-            continue
-        if 1 <= choice <= len(weapon_list):
-            return choice
-        print("Please enter a valid number")
+def select_weapon_menu(weapon_list: list[str]) -> int | None:
+    return formatter.choose(weapon_list, back="Return to Main Menu", invalid="Please enter a valid number")
 
 
 def get_selected_weapon() -> Weapon | None:
@@ -48,65 +22,42 @@ def get_selected_weapon() -> Weapon | None:
     print("Weapons List")
     print("----------------------")
     choice = select_weapon_menu(weapon_list)
-    if choice == 0:
+    if choice is None:
         formatter.clear()
         return None
-    weapon = Catalog.create(weapon_list[choice - 1])
+    weapon = Catalog.create(weapon_list[choice])
     weapon.reload()
     return weapon
 
 
 def set_fire_mode(selected_weapon: Weapon) -> FireMode | None:
     modes = selected_weapon.fire_modes
-    for index, mode in enumerate(modes, start=1):
-        print(f"{index}.) {mode.display_name}")
-    back = len(modes) + 1
-    print(f"{back}.) Return to Shooting Menu")
-    answer = input(f"Pick 1 - {back}\n")
-    try:
-        choice = int(answer)
-    except ValueError:
-        print("Invalid Selection; Fire Mode not set")
-        return None
-    if choice == back:
-        return None
-    if 1 <= choice <= len(modes):
-        return modes[choice - 1]
-    print("Invalid Selection; Fire Mode not set")
-    return None
+    choice = formatter.choose([mode.display_name for mode in modes], back="Return to Shooting Menu",
+                              invalid="Invalid Selection; Fire Mode not set", retry=False)
+    return None if choice is None else modes[choice]
 
 
 def interactive_reload(weapon: Weapon) -> bool:
-    if weapon.current_ammo == weapon.max_ammo:
+    step = weapon.next_reload_step()
+    if step is None:
         print("Ammo already full. No need to reload")
         return False
-
     if weapon.reload_style is ReloadStyle.SHELL:
         print("Non-Automatic Shotguns need to be manually loaded.")
         print("--------------------------------------------------")
-        remaining = weapon.max_ammo - weapon.current_ammo
-        while remaining != 0:
-            input("Press any button to load a shell")
-            weapon.load_round()
-            remaining -= 1
-            print(f"One shell loaded. {remaining} remaining")
-        return True
-
-    if weapon.reload_style is ReloadStyle.REVOLVER:
+    elif weapon.reload_style is ReloadStyle.REVOLVER:
         print("Revolvers unload when reloaded and must be manually loaded")
         print("----------------------------------------------------------")
-        if weapon.current_ammo != 0:
-            weapon.unload()
+    noun = "shell" if weapon.reload_style is ReloadStyle.SHELL else "bullet"
+    while step is not None:
+        if step in (ReloadStyle.SHELL, ReloadStyle.REVOLVER):
+            input(f"Press any button to load a {noun}")
+        weapon.take_reload_step(step)
+        if step == "empty":
             print("Gun unloaded")
-        remaining = weapon.max_ammo
-        while remaining != 0:
-            input("Press any button to load a bullet.")
-            weapon.load_round()
-            remaining -= 1
-            print(f"One bullet loaded. {remaining} remaining")
-        return True
-
-    weapon.reload()
+        elif step is not ReloadStyle.MAGAZINE:
+            print(f"One {noun} loaded. {weapon.max_ammo - weapon.current_ammo} remaining")
+        step = weapon.next_reload_step(loading=True)
     return True
 
 

@@ -1,3 +1,4 @@
+import threading
 import time
 from functools import wraps
 
@@ -5,9 +6,8 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 
 from gunsystem import Catalog, FireMode, ReloadStyle, Weapon
 
-from demo.dummy import RANGES, SIZE_LABELS, SIZE_STATS, Dummy
-from demo.screens.balance import REPORT_DIR, write_report
-from demo.simulation import MAGAZINES_PER_RANGE, MagazineResult, balance_runs, combine, run_bulk
+from gunsystem.dummy import RANGES, SIZE_LABELS, SIZE_STATS, Dummy, size_code, size_label
+from gunsystem.simulation import MAGAZINES_PER_RANGE, REPORT_DIR, MagazineResult, balance_runs, combine, run_bulk, write_report
 from webapp.range_session import RELOAD_LABELS, RangeSession
 
 bp = Blueprint("main", __name__)
@@ -22,6 +22,8 @@ RELOAD_NOTES = {
 }
 FIRE_LABELS = {FireMode.SINGLE: "a shot", FireMode.BURST: "a 3 round burst", FireMode.AUTO: "a string"}
 DUMMY_HEIGHTS = {"s": 110, "m": 150, "l": 190}
+# A balance run takes a few seconds of CPU, so only one runs at a time.
+_balance_lock = threading.Lock()
 
 
 def _stat_max() -> dict[str, int]:
@@ -68,16 +70,17 @@ def _weapon_or_404(name: str) -> Weapon:
         abort(404)
 
 
-def _weapons_by_class(category: str | None = None) -> dict[str, list[Weapon]]:
-    groups: dict[str, list[Weapon]] = {}
-    for weapon in Catalog.all():
-        if category is None or weapon.weapon_type.category == category:
-            groups.setdefault(weapon.weapon_type.class_name, []).append(weapon)
-    return groups
+def _balance_owner() -> str | None:
+    """Whose balance results to use: the logged-in portfolio account, or one shared slot when portfolio login is
+    off. None when portfolio login is on but nobody is logged in."""
+    if not current_app.extensions.get("portfolio_login"):
+        return "local"
+    return session.get("portfolio_sub")
 
 
-def _size(value) -> str:
-    return value if value in SIZE_STATS else "m"
+def _balance_run() -> dict | None:
+    owner = _balance_owner()
+    return current_app.extensions.setdefault("balance_runs", {}).get(owner) if owner else None
 
 
 def _distance(value) -> int:
@@ -98,7 +101,7 @@ def menu():
 @bp.get("/armory")
 def armory():
     categories = [
-        (category, [f"{name} ({len(weapons)})" for name, weapons in _weapons_by_class(category).items()])
+        (category, [f"{name} ({len(weapons)})" for name, weapons in Catalog.by_class(category).items()])
         for category in Catalog.CATEGORIES
     ]
     return render_template("armory.html", categories=categories)
@@ -108,7 +111,7 @@ def armory():
 def armory_category(category: str):
     if category not in Catalog.CATEGORIES:
         abort(404)
-    return render_template("armory_category.html", category=category, groups=_weapons_by_class(category))
+    return render_template("armory_category.html", category=category, groups=Catalog.by_class(category))
 
 
 @bp.get("/armory/weapon/<name>")
@@ -161,14 +164,14 @@ def range_view():
 def range_setup():
     if request.method == "POST":
         weapon = _weapon_or_404(request.form.get("weapon", ""))
-        size = _size(request.form.get("size"))
+        size = size_code(request.form.get("size"))
         RangeSession.start(weapon.name, size, _distance(request.form.get("distance"))).save()
         return redirect(url_for(".range_view"))
 
     current = RangeSession.load()
     return render_template(
         "range_setup.html",
-        groups=_weapons_by_class(),
+        groups=Catalog.by_class(),
         selected=request.args.get("weapon") or (current.weapon.name if current else None),
         size=current.dummy.size if current else "m",
         distance=current.dummy.distance if current else RANGES[0],
@@ -191,7 +194,7 @@ def range_weapon():
         flash(f"Switched to the {weapon.name}.")
         return redirect(url_for(".range_view"))
     return render_template(
-        "range_setup.html", groups=_weapons_by_class(), selected=range_session.weapon.name, switching=True
+        "range_setup.html", groups=Catalog.by_class(), selected=range_session.weapon.name, switching=True
     )
 
 
@@ -227,19 +230,20 @@ def range_reload(rs: RangeSession):
 def range_new_dummy(rs: RangeSession):
     if not rs.dummy.is_destroyed():
         return "Finish off the current dummy first."
-    rs.new_dummy(_size(request.form.get("size")))
+    rs.new_dummy(size_code(request.form.get("size")))
     return f"New {rs.dummy.size_label.lower()} dummy set up at {rs.dummy.distance} m."
 
 
 @bp.post("/range/leave")
 def range_leave():
     session.pop("range", None)
+    session["saved_at"] = time.time()
     return redirect(url_for(".menu"))
 
 
 @bp.get("/bulk")
 def bulk():
-    return render_template("bulk.html", groups=_weapons_by_class())
+    return render_template("bulk.html", groups=Catalog.by_class())
 
 
 @bp.get("/bulk/<name>")
@@ -249,7 +253,7 @@ def bulk_form(name: str):
     modes = {mode.value: mode for mode in weapon.fire_modes}
     values = {
         "shots": min(max(_int(args.get("shots"), weapon.max_ammo), 1), MAX_BULK_SHOTS),
-        "size": _size(args.get("size")),
+        "size": size_code(args.get("size")),
         "distance": _distance(args.get("distance")),
         "mode": modes.get(args.get("mode"), weapon.fire_modes[0]),
     }
@@ -271,8 +275,8 @@ def bulk_form(name: str):
 
 @bp.get("/balance")
 def balance():
-    run = current_app.extensions.get("balance_run")
-    size = request.args.get("size") if request.args.get("size") in SIZE_LABELS else "Medium"
+    run = _balance_run()
+    size = size_label(request.args.get("size"))
     metric = request.args.get("metric") if request.args.get("metric") in BALANCE_METRICS else "accuracy"
     rows = [row for row in run["rows"] if row["size"] == size] if run else None
     return render_template(
@@ -286,41 +290,57 @@ def balance():
         ranges=RANGES,
         magazines=MAGAZINES_PER_RANGE,
         report_dir=REPORT_DIR,
+        can_run=_balance_owner() is not None,
     )
 
 
 @bp.post("/balance")
 def balance_run():
-    write_files = request.form.get("write_files") == "on"
+    owner = _balance_owner()
+    if owner is None:
+        flash("Log in with your portfolio account to run a balance report.")
+        return redirect(url_for(".balance", **request.args))
+    if not _balance_lock.acquire(blocking=False):
+        flash("Another balance report is running. Try again in a few seconds.")
+        return redirect(url_for(".balance", **request.args))
+    try:
+        run = _run_balance(request.form.get("write_files") == "on")
+    finally:
+        _balance_lock.release()
+    current_app.extensions.setdefault("balance_runs", {})[owner] = run
+    flash("Report finished." + (f" Text reports saved to {REPORT_DIR}/." if run["wrote_files"] else ""))
+    return redirect(url_for(".balance", **request.args))
+
+
+def _run_balance(write_files: bool) -> dict:
     started = time.perf_counter()
     rows = []
-    for weapon, fire_mode, size_label, ranges in balance_runs():
+    for weapon, fire_mode, size, ranges in balance_runs():
         if write_files:
-            write_report(weapon, fire_mode, size_label, ranges)
+            write_report(weapon, fire_mode, size, ranges)
         rows.append(
             {
                 "group": weapon.weapon_type.class_name,
                 "weapon": weapon.name,
                 "mode": fire_mode.display_name,
-                "size": size_label,
+                "size": size,
                 "ranges": [
                     {"distance": distance, "magazines": magazines, "total": combine(magazines)}
                     for distance, magazines in ranges
                 ],
             }
         )
-    current_app.extensions["balance_run"] = {
+    return {
         "rows": rows,
         "finished": time.strftime("%H:%M:%S"),
         "seconds": round(time.perf_counter() - started, 1),
+        "wrote_files": write_files,
     }
-    flash("Report finished." + (f" Text reports saved to {REPORT_DIR}/." if write_files else ""))
-    return redirect(url_for(".balance", **request.args))
 
 
 @bp.get("/balance/results")
 def balance_results():
-    run = current_app.extensions.get("balance_run")
+    run = _balance_run()
     args = request.args
     distance = _int(args.get("range"), None)
     filters = {
@@ -355,7 +375,7 @@ def balance_results():
         start=start,
         page=page,
         pages=pages,
-        groups=_weapons_by_class(),
+        groups=Catalog.by_class(),
         sizes=SIZE_LABELS,
         ranges=RANGES,
         magazines=MAGAZINES_PER_RANGE,

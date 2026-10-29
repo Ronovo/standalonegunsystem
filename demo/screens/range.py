@@ -1,8 +1,8 @@
 from gunsystem import FireMode, Weapon
 
-from demo.dummy import Dummy
+from gunsystem.dummy import Dummy
 from demo.dummy_catalog import prompt_dummy_range, prompt_new_dummy
-from demo.simulation import pull_trigger
+from gunsystem.simulation import pull_trigger
 from demo.ui import formatter
 from demo.ui.weapons import get_selected_weapon, interactive_reload, print_range_display, set_fire_mode
 

@@ -67,6 +67,24 @@ class Weapon:
     def unload(self) -> None:
         self.current_ammo = 0
 
+    def next_reload_step(self, loading: bool = False) -> "str | ReloadStyle | None":
+        """The next reload action: None when full, "empty" when a revolver still holding rounds has to be emptied
+        before loading, else the reload style. `loading` is True once a reload has started."""
+        if self.current_ammo == self.max_ammo:
+            return None
+        if self.reload_style is ReloadStyle.REVOLVER and self.current_ammo > 0 and not loading:
+            return "empty"
+        return self.reload_style
+
+    def take_reload_step(self, step: "str | ReloadStyle") -> None:
+        """Empties the cylinder, loads a whole magazine, or loads one shell or round."""
+        if step == "empty":
+            self.unload()
+        elif step is ReloadStyle.MAGAZINE:
+            self.reload()
+        else:
+            self.load_round()
+
     def fire_shot(self) -> bool:
         if self.current_ammo <= 0:
             return False

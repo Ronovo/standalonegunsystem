@@ -1,11 +1,16 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterator
 
 from gunsystem import Catalog, FireMode, ShotResult, Weapon, advance_string, resolve_shot
 
-from demo.dummy import RANGES, SIZE_LABELS, Dummy, create_dummy
+from gunsystem.dummy import RANGES, SIZE_LABELS, Dummy
 
 MAGAZINES_PER_RANGE = 15
+REPORT_DIR = Path("Balance Reports")
+RULE = "-" * 36
+# Rounds per trigger pull on full auto: the range's starting setting, and what reports and bulk fire use.
+AUTO_ROUNDS_PER_PULL = 10
 
 
 @dataclass
@@ -35,6 +40,41 @@ def combine(magazines: list[MagazineResult]) -> MagazineResult:
     )
 
 
+def report_lines(magazines: list[MagazineResult]) -> list[str]:
+    lines = ["Breakdown by Magazine", "--------------------"]
+    for n, magazine in enumerate(magazines, start=1):
+        line = (
+            f"Magazine {n}: {magazine.hits} Hits / {magazine.misses} Misses / "
+            f"{magazine.destroyed} Dummies Destroyed / {magazine.damage} Damage Done"
+        )
+        if magazine.crits > 0:
+            line += f"/ Critical Hits : {magazine.crits}"
+        lines.append(line)
+    totals = combine(magazines)
+    return lines + [
+        "",
+        "Totals for All Shots",
+        "--------------------",
+        f"{totals.accuracy}% Accuracy / {totals.destroyed} Dummies Destroyed / {totals.damage} Damage Done",
+        RULE,
+        "",
+    ]
+
+
+def write_report(
+    weapon: Weapon,
+    fire_mode: FireMode,
+    size_label: str,
+    ranges: list[tuple[int, list[MagazineResult]]],
+) -> None:
+    report_dir = REPORT_DIR / weapon.weapon_type.class_name / weapon.name / size_label
+    report_dir.mkdir(parents=True, exist_ok=True)
+    lines = [f"Balance Report for {weapon.name}", RULE, ""]
+    for distance, magazines in ranges:
+        lines += [f"Results for {distance}M", RULE, "", *report_lines(magazines)]
+    (report_dir / (fire_mode.display_name + ".txt")).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def plan_magazines(max_ammo: int, total_shots: int) -> tuple[int, int]:
     """Return (magazine_count, ammo_in_first_magazine). Fewer than 1 shot means one full magazine."""
     if total_shots < 1:
@@ -49,24 +89,22 @@ def plan_magazines(max_ammo: int, total_shots: int) -> tuple[int, int]:
 
 
 def run_magazines(weapon: Weapon, magazine_count: int, dummy: Dummy, fire_mode: FireMode) -> list[MagazineResult]:
-    """Empty the current magazine, then reload and empty until magazine_count magazines are fired."""
+    """Empty the current magazine, then reload and empty until magazine_count magazines are fired. Each trigger
+    pull starts a new string, as on the range."""
     dummy.reset_health()
     magazines = []
     for n in range(magazine_count):
         if n > 0:
             weapon.reload()
         magazine = MagazineResult()
-        shots_in_string = 0
         while weapon.current_ammo > 0:
-            shots_in_string = advance_string(fire_mode, shots_in_string)
-            result = resolve_shot(weapon, dummy, shots_in_string)
-            if not result.hit:
-                magazine.misses += 1
-                continue
-            magazine.hits += 1
-            magazine.crits += result.critical
-            magazine.damage += result.damage
-            dummy.take_damage(result.damage)
+            for result, _ in pull_trigger(weapon, dummy, fire_mode, AUTO_ROUNDS_PER_PULL):
+                if result.hit:
+                    magazine.hits += 1
+                    magazine.crits += result.critical
+                    magazine.damage += result.damage
+                else:
+                    magazine.misses += 1
             if dummy.is_destroyed():
                 magazine.destroyed += 1
                 dummy.reset_health()
@@ -112,7 +150,7 @@ def balance_runs(
         weapon.reload()
         for fire_mode in weapon.fire_modes:
             for size_label in SIZE_LABELS:
-                dummy = create_dummy(size_label)
+                dummy = Dummy(size_label)
                 ranges = []
                 for distance in RANGES:
                     dummy.distance = distance
