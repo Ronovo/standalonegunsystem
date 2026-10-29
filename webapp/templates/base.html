@@ -16,11 +16,12 @@
     </a>
     <div class="topbar-actions">
       {% block back %}{% endblock %}
-      {% if ronovo %}
-        {% if session.ronovo_user %}
-        <form method="post" action="{{ url_for('logout') }}"><button class="back">{{ session.ronovo_user }}: Log out</button></form>
+      {% if portfolio %}
+        {% if session.portfolio_user %}
+        <form method="post" action="{{ url_for('logout') }}"><button class="back">{{ session.portfolio_user }}: Log out</button></form>
         {% else %}
-        <a class="back" href="{{ url_for('sso_login') }}">Log in with Ronovo</a>
+        <a class="back" id="portfolio-button" href="{{ url_for('sso_login') }}"
+           data-portfolio-url="{{ portfolio_url }}">Log in with portfolio account</a>
         {% endif %}
       {% endif %}
     </div>

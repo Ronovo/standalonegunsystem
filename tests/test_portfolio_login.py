@@ -18,23 +18,23 @@ PUBLIC_KEY = base64.b64encode(KEY.public_key().public_bytes(Encoding.DER, Public
 
 def issue(sub="1", name="ronovo", aud="gunsystem"):
     now = int(time.time())
-    return jwt.encode({"iss": "ronovo", "aud": aud, "sub": sub, "name": name, "iat": now, "exp": now + 300},
+    return jwt.encode({"iss": "portfolio", "aud": aud, "sub": sub, "name": name, "iat": now, "exp": now + 300},
                       KEY, algorithm="RS256")
 
 
-class RonovoOffTests(unittest.TestCase):
-    def test_no_ronovo_login_without_config(self):
-        with mock.patch.dict(os.environ, {"RONOVO_SSO_URL": "", "RONOVO_SSO_PUBLIC_KEY": ""}):
+class PortfolioOffTests(unittest.TestCase):
+    def test_no_portfolio_login_without_config(self):
+        with mock.patch.dict(os.environ, {"PORTFOLIO_SSO_URL": "", "PORTFOLIO_SSO_PUBLIC_KEY": ""}):
             client = create_app({"TESTING": True, "SECRET_KEY": "test"}).test_client()
-        self.assertNotIn(b"Log in with Ronovo", client.get("/").data)
+        self.assertNotIn(b"Log in with portfolio account", client.get("/").data)
         self.assertEqual(client.get("/sso/login").status_code, 404)
 
 
-class RonovoLoginTests(unittest.TestCase):
+class PortfolioLoginTests(unittest.TestCase):
     def setUp(self):
         data_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(data_dir.cleanup)
-        env = mock.patch.dict(os.environ, {"RONOVO_SSO_URL": "http://ronovo.test", "RONOVO_SSO_PUBLIC_KEY": PUBLIC_KEY})
+        env = mock.patch.dict(os.environ, {"PORTFOLIO_SSO_URL": "http://portfolio.test", "PORTFOLIO_SSO_PUBLIC_KEY": PUBLIC_KEY})
         env.start()
         self.addCleanup(env.stop)
         self.app = create_app({"TESTING": True, "SECRET_KEY": "test", "DATA_DIR": data_dir.name})
@@ -51,12 +51,14 @@ class RonovoLoginTests(unittest.TestCase):
 
     def test_login_shows_account_and_logout_keeps_browser_save(self):
         client = self.app.test_client()
-        self.assertIn(b"Log in with Ronovo", client.get("/").data)
+        page = client.get("/").data
+        self.assertIn(b"Log in with portfolio account", page)
+        self.assertIn(b'data-portfolio-url="http://portfolio.test"', page)
         self.assertEqual(self.log_in(client).status_code, 302)
         self.assertIn(b"ronovo: Log out", client.get("/").data)
         client.post("/range/setup", data={"weapon": "M1911", "size": "s", "distance": "50"})
         client.post("/logout")
-        self.assertIn(b"Log in with Ronovo", client.get("/").data)
+        self.assertIn(b"Log in with portfolio account", client.get("/").data)
         self.assertEqual(self.range_weapon(client), "M1911")
 
     def test_progress_follows_the_account_to_another_browser(self):
@@ -91,7 +93,7 @@ class RonovoLoginTests(unittest.TestCase):
         client = self.app.test_client()
         self.assertEqual(self.log_in(client, token=issue(aud="casino")).status_code, 400)
         self.assertEqual(client.post("/sso/callback", data={"state": "nope", "token": issue()}).status_code, 400)
-        self.assertIn(b"Log in with Ronovo", client.get("/").data)
+        self.assertIn(b"Log in with portfolio account", client.get("/").data)
 
 
 if __name__ == "__main__":

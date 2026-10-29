@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, redirect, session, url_for
 
-from webapp import ronovo_sso
+from webapp import portfolio_sso
 from webapp.players import Players
 
 PROGRESS_KEYS = ("range", "destroyed")
@@ -18,21 +18,21 @@ def create_app(config: dict | None = None) -> Flask:
     from webapp.views import bp
 
     app.register_blueprint(bp)
-    if ronovo_sso.enabled():
-        add_ronovo_login(app)
+    if portfolio_sso.enabled():
+        add_portfolio_login(app)
     return app
 
 
-def add_ronovo_login(app: Flask) -> None:
-    """The range and destroyed count live in the browser's session cookie. While logged in with Ronovo
-    they are also kept for the account, and logging in on another browser takes whichever copy is newer."""
+def add_portfolio_login(app: Flask) -> None:
+    """The range and destroyed count live in the browser's session cookie. While logged in with a portfolio
+    account they are also kept for it, and logging in on another browser takes whichever copy is newer."""
     os.makedirs(app.config["DATA_DIR"], exist_ok=True)
     players = Players(os.path.join(app.config["DATA_DIR"], "players.db"))
 
     def progress():
         return {key: session.get(key) for key in PROGRESS_KEYS}
 
-    def ronovo_login(account):
+    def portfolio_login(account):
         stored = players.load(account["sub"])
         if stored:
             saved, saved_at = stored
@@ -43,25 +43,25 @@ def add_ronovo_login(app: Flask) -> None:
                 session["saved_at"] = saved_at
             session["destroyed"] = max(session.get("destroyed", 0), saved.get("destroyed") or 0)
         session.permanent = True
-        session["ronovo_sub"] = account["sub"]
-        session["ronovo_user"] = account["username"]
+        session["portfolio_sub"] = account["sub"]
+        session["portfolio_user"] = account["username"]
         players.store(account["sub"], progress(), session.get("saved_at", 0))
         return redirect(url_for("main.menu"))
 
-    ronovo_sso.add_flask_routes(app, "gunsystem", ronovo_login)
+    portfolio_sso.add_flask_routes(app, "gunsystem", portfolio_login)
 
     @app.post("/logout")
     def logout():
-        session.pop("ronovo_sub", None)
-        session.pop("ronovo_user", None)
+        session.pop("portfolio_sub", None)
+        session.pop("portfolio_user", None)
         return redirect(url_for("main.menu"))
 
     @app.context_processor
-    def inject_ronovo():
-        return {"ronovo": True}
+    def inject_portfolio():
+        return {"portfolio": True, "portfolio_url": portfolio_sso.portfolio_url()}
 
     @app.after_request
     def save_progress(response):
-        if session.modified and session.get("ronovo_sub"):
-            players.store(session["ronovo_sub"], progress(), session.get("saved_at", 0))
+        if session.modified and session.get("portfolio_sub"):
+            players.store(session["portfolio_sub"], progress(), session.get("saved_at", 0))
         return response
