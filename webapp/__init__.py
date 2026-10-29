@@ -2,7 +2,8 @@ import os
 
 from flask import Flask, redirect, session, url_for
 
-from webapp import portfolio_sso
+from ronovo_portfolio_auth import portfolio_sso
+
 from webapp.players import Players
 
 PROGRESS_KEYS = ("range", "destroyed")
@@ -25,7 +26,8 @@ def create_app(config: dict | None = None) -> Flask:
 
 def add_portfolio_login(app: Flask) -> None:
     """The range and destroyed count live in the browser's session cookie. While logged in with a portfolio
-    account they are also kept for it, and logging in on another browser takes whichever copy is newer."""
+    account they are also kept for it; logging in on another browser takes whichever range is newer and the
+    higher destroyed count."""
     os.makedirs(app.config["DATA_DIR"], exist_ok=True)
     players = Players(os.path.join(app.config["DATA_DIR"], "players.db"))
 
@@ -33,6 +35,12 @@ def add_portfolio_login(app: Flask) -> None:
         return {key: session.get(key) for key in PROGRESS_KEYS}
 
     def portfolio_login(account):
+        # Progress this browser kept for a different account stays with that account instead of being
+        # saved into this one. Progress made before any login has no owner and joins this account.
+        if session.get("progress_owner", account["sub"]) != account["sub"]:
+            for key in (*PROGRESS_KEYS, "saved_at"):
+                session.pop(key, None)
+        session["progress_owner"] = account["sub"]
         stored = players.load(account["sub"])
         if stored:
             saved, saved_at = stored

@@ -120,7 +120,6 @@ def weapon_detail(name: str):
 
 
 def range_action(view):
-    """Load the range session, run the action, save, and redirect back to the range."""
 
     @wraps(view)
     def wrapper():

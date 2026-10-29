@@ -82,7 +82,7 @@ def resolve_shot(
     if target.distance > weapon.max_range:
         return _miss(weapon)
 
-    # Spray scales the raw roll so the close-range clamp to 0 cannot cancel it.
+    # Spray scales the raw roll before the range modifier clamps at 0.
     base_result = apply_spray(float(rng.randint(1, 100)), shots_in_string)
     base_result = apply_range_modifier(target.distance, weapon.range_m, weapon.weapon_type, base_result)
     base_result = apply_size_modifier(target.size, base_result)

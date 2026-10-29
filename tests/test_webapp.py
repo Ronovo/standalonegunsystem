@@ -147,7 +147,7 @@ class WebAppTests(unittest.TestCase):
         page = self.client.get(
             "/balance/results", query_string={"weapon": "M40A3", "range": 500, "size": "Small"}
         ).get_data(as_text=True)
-        self.assertIn("RESULTS · 1–1 OF 1", page)
+        self.assertIn("RESULTS · 1-1 OF 1", page)
         self.assertEqual(page.count('<details class="result">'), 1)
         self.assertEqual(page.count("<td>3</td>"), 1)
         self.assertNotIn("<td>4</td>", page)
@@ -160,7 +160,7 @@ class WebAppTests(unittest.TestCase):
         self.assertIn('href="/balance/results?page=2"', page)
         last = self.client.get("/balance/results", query_string={"page": 99}).get_data(as_text=True)
         self.assertIn("Page 19 of 19", last)
-        self.assertIn("901–945 OF 945", last)
+        self.assertIn("901-945 OF 945", last)
 
 
 if __name__ == "__main__":

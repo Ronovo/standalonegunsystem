@@ -71,11 +71,11 @@
 
 {% if count %}
 <section class="panel">
-  <h2 class="panel-title">RESULTS · {{ start + 1 }}–{{ start + page_entries|length }} OF {{ count }}</h2>
+  <h2 class="panel-title">RESULTS · {{ start + 1 }}-{{ start + page_entries|length }} OF {{ count }}</h2>
   <p class="muted">Select a result to see its accuracy per magazine.</p>
   <div class="result-grid result-head" aria-hidden="true">
     <span>Weapon</span><span>Mode</span><span>Dummy</span><span class="num">Range</span><span class="num">Shots</span>
-    <span class="num">Accuracy</span><span class="num">Mag low–high</span><span class="num">Destroyed</span><span class="num">Damage</span>
+    <span class="num">Accuracy</span><span class="num">Mag low-high</span><span class="num">Destroyed</span><span class="num">Damage</span>
   </div>
   {% for entry in page_entries %}
     {% set total = entry.total %}
@@ -88,7 +88,7 @@
         <span class="num">{{ entry.distance }} m</span>
         <span class="num">{{ total.shots }}</span>
         <span class="num {{ total|accuracy_class }}">{{ total.accuracy }}%</span>
-        <span class="num muted">{{ "%.0f"|format(mag_accuracy|min) }}–{{ "%.0f"|format(mag_accuracy|max) }}%</span>
+        <span class="num muted">{{ "%.0f"|format(mag_accuracy|min) }}-{{ "%.0f"|format(mag_accuracy|max) }}%</span>
         <span class="num">{{ total.destroyed }}</span>
         <span class="num">{{ total.damage }}</span>
       </summary>

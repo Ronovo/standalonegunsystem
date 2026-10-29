@@ -108,7 +108,6 @@ def pull_trigger(
 def balance_runs(
     magazines_per_range: int = MAGAZINES_PER_RANGE,
 ) -> Iterator[tuple[Weapon, FireMode, str, list[tuple[int, list[MagazineResult]]]]]:
-    """Yield (weapon, fire_mode, dummy_size_label, [(distance, magazines), ...]) for every combination."""
     for weapon in Catalog.all():
         weapon.reload()
         for fire_mode in weapon.fire_modes:

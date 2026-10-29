@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
     && sed -i 's/\r$//' /usr/local/bin/git-sync && chmod +x /usr/local/bin/git-sync
 
 RUN pip install --no-cache-dir flask==3.1.3 "pyjwt[crypto]==2.15.1" gunicorn==23.0.0 \
+        "ronovo-portfolio-auth @ https://github.com/Ronovo/ronovo-portfolio-auth/archive/refs/tags/v1.0.0.tar.gz" \
     && useradd --create-home --uid 1000 gunsystem \
     && mkdir -p /app/data \
     && chown gunsystem /app /app/data
