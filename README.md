@@ -1,12 +1,6 @@
 # Stand Alone Gun System (Text-Based)
 Simple weapons system built in Python. The `gunsystem` library can be imported into other games; this repo also includes a range demo you can play in the browser (Flask) or in the terminal.
 
-<p float="left">
-  <img src="Resources/MainMenu.png" width="250" />
-  <img src="Resources/Range Menu.png" width="250" /> 
-  <img src="Resources/Shooting.png" width="250" />
-</p>
-
 ## Set Up and Run
 ### 1.) Requires Python to be installed
   - Requires Python 3.10 or newer (the Docker image runs 3.12)

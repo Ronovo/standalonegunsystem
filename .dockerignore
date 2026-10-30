@@ -7,7 +7,6 @@
 build
 dist
 Balance Reports
-Resources
 tests
 Dockerfile
 .dockerignore
