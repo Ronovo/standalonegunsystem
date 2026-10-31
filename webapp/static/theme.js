@@ -16,7 +16,9 @@
     } catch {}
   };
   const pickers = () => document.querySelectorAll("select[data-theme-picker]");
+  const known = (theme) => [...pickers()].every((picker) => picker.querySelector(`option[value="${theme}"]`));
   const show = (theme) => {
+    if (!known(theme)) theme = DEFAULT;
     root.dataset.theme = theme;
     for (const picker of pickers()) picker.value = theme;
   };
@@ -43,10 +45,9 @@
     if (event.key === KEY) show(event.newValue || DEFAULT);
   });
 
+  // The picker arrives after this script ran, so the theme is checked against it here too.
   addEventListener("DOMContentLoaded", () => {
-    for (const picker of pickers()) {
-      picker.value = root.dataset.theme;
-      picker.addEventListener("change", () => set(picker.value, picker));
-    }
+    show(root.dataset.theme);
+    for (const picker of pickers()) picker.addEventListener("change", () => set(picker.value, picker));
   });
 })();

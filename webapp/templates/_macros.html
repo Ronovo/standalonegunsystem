@@ -2,6 +2,10 @@
 <span class="gun gun-{{ size }}" aria-hidden="true">{% include "svg/" ~ class_name|lower ~ ".svg" %}</span>
 {%- endmacro %}
 
+{% macro gun_icon(weapon, size="sm") -%}
+<span class="gun gun-{{ size }}" data-gun="{{ weapon.name|slug }}" aria-hidden="true">{% include "svg/guns/" ~ weapon.name|slug ~ ".svg" %}</span>
+{%- endmacro %}
+
 {% macro menu_card(key, href, label, hint="", icon=None) -%}
 <li>
   <a class="card menu-item" href="{{ href }}" data-key="{{ key }}">
@@ -21,6 +25,18 @@
 
 {% macro meter(value, maximum, cls="") -%}
 <span class="meter {{ cls }}"><span class="meter-fill" style="width: {{ value|percent(maximum) }}%"></span></span>
+{%- endmacro %}
+
+{% macro lane_chart(points, maximum, suffix="", coloured=False) -%}
+<div class="lane-chart">
+  {% for distance, value in points %}
+    <div class="lane-bar">
+      <span class="lane-fill{% if coloured %} {{ value|chance_class }}{% endif %}" style="--v: {{ value|percent(maximum) }}%; --i: {{ loop.index0 }}"></span>
+      <span class="num">{{ value }}{{ suffix }}</span>
+      <span class="caption">{{ distance }} m</span>
+    </div>
+  {% endfor %}
+</div>
 {%- endmacro %}
 
 {% macro ammo_display(weapon) -%}
@@ -59,18 +75,35 @@
 {% endfor %}
 {%- endmacro %}
 
-{% macro weapon_radios(groups, selected) -%}
-{% for class_name, weapons in groups.items() %}
-<fieldset class="radio-group">
-  <legend>{{ class_icon(class_name, "xs") }}{{ class_name }}</legend>
-  {% for weapon in weapons %}
-    <label class="chip">
-      <input type="radio" name="weapon" value="{{ weapon.name }}" required {% if weapon.name == selected %}checked{% endif %}>
-      {{ weapon.name }}
-    </label>
+{% macro weapon_picker(groups, selected) -%}
+{% set current = namespace(class_name=groups|first) %}
+{% for class_name, weapons in groups.items() if selected in weapons|map(attribute="name") %}{% set current.class_name = class_name %}{% endfor %}
+<div class="picker" data-tabs>
+  <div class="tabs">
+    {% for class_name in groups %}
+      <label class="chip">
+        <input type="radio" name="class" value="{{ class_name }}" data-tab {% if class_name == current.class_name %}checked{% endif %}>
+        {{ class_icon(class_name, "xs") }}{{ class_name }}
+      </label>
+    {% endfor %}
+  </div>
+  {% for class_name, weapons in groups.items() %}
+    <ol class="cards" data-panel="{{ class_name }}">
+      {% for weapon in weapons %}
+        <li>
+          <label class="card gun-card">
+            <input type="radio" name="weapon" value="{{ weapon.name }}" required {% if weapon.name == selected %}checked{% endif %}>
+            {{ gun_icon(weapon, "sm") }}
+            <span class="card-body">
+              <span class="label">{{ weapon.name }}</span>
+              <span class="hint">{{ weapon.max_ammo }} rds · {{ weapon.fire_mode_names() }}</span>
+            </span>
+          </label>
+        </li>
+      {% endfor %}
+    </ol>
   {% endfor %}
-</fieldset>
-{% endfor %}
+</div>
 {%- endmacro %}
 
 {% macro size_radios(sizes, selected) -%}

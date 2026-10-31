@@ -9,7 +9,7 @@ afterEach(() => {
   document.documentElement.style.cssText = '';
 });
 
-const picker = '<select data-theme-picker><option value="range">Range</option><option value="hud">HUD</option><option value="light">Light</option></select>';
+const picker = '<select data-theme-picker><option value="range">Range</option><option value="cyberpunk">Cyberpunk</option><option value="light">Light</option></select>';
 const theme = () => document.documentElement.dataset.theme;
 const select = () => document.querySelector('select');
 
@@ -25,9 +25,18 @@ function pick(value) {
 
 describe('on load', () => {
   it('uses the saved theme and shows it in the picker', async () => {
-    localStorage.setItem('theme', 'hud');
+    localStorage.setItem('theme', 'cyberpunk');
     await load();
-    expect([theme(), select().value, window.gunTheme.get()]).toEqual(['hud', 'hud', 'hud']);
+    expect([theme(), select().value, window.gunTheme.get()]).toEqual(['cyberpunk', 'cyberpunk', 'cyberpunk']);
+  });
+
+  it('falls back to the default when the saved theme is no longer offered', async () => {
+    // As on a real page: the script runs in <head>, before the picker exists.
+    localStorage.setItem('theme', 'hud');
+    await loadScripts(['theme.js']);
+    document.body.innerHTML = picker;
+    document.dispatchEvent(new Event('DOMContentLoaded', { bubbles: true }));
+    expect([theme(), select().value]).toEqual(['range', 'range']);
   });
 
   it('falls back to the range theme', async () => {
@@ -56,9 +65,9 @@ describe('picking a theme', () => {
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })));
     document.startViewTransition = vi.fn((change) => change());
     select().getBoundingClientRect = () => ({ left: 100, top: 10, width: 40, height: 20 });
-    pick('hud');
+    pick('cyberpunk');
     expect(document.startViewTransition).toHaveBeenCalledOnce();
-    expect(theme()).toBe('hud');
+    expect(theme()).toBe('cyberpunk');
     const style = document.documentElement.style;
     expect([style.getPropertyValue('--wipe-x'), style.getPropertyValue('--wipe-y')]).toEqual(['120px', '20px']);
   });
@@ -75,17 +84,17 @@ describe('picking a theme', () => {
     await load();
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })));
     document.startViewTransition = vi.fn();
-    pick('hud');
+    pick('cyberpunk');
     expect(document.startViewTransition).not.toHaveBeenCalled();
-    expect(theme()).toBe('hud');
+    expect(theme()).toBe('cyberpunk');
   });
 });
 
 describe('another tab', () => {
   it('changing the theme changes this one too', async () => {
     await load();
-    window.dispatchEvent(new StorageEvent('storage', { key: 'theme', newValue: 'hud' }));
-    expect([theme(), select().value]).toEqual(['hud', 'hud']);
+    window.dispatchEvent(new StorageEvent('storage', { key: 'theme', newValue: 'cyberpunk' }));
+    expect([theme(), select().value]).toEqual(['cyberpunk', 'cyberpunk']);
     window.dispatchEvent(new StorageEvent('storage', { key: 'theme', newValue: null }));
     expect(theme()).toBe('range');
   });

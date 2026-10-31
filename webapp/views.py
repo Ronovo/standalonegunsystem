@@ -1,3 +1,4 @@
+import re
 import threading
 import time
 from collections import OrderedDict
@@ -18,18 +19,10 @@ from flask import (
     url_for,
 )
 
-from gunsystem import Catalog, Target, Weapon, hit_chance
+from gunsystem import Catalog, ReloadStyle, Target, Weapon, hit_chance
+from gunsystem.combat import compute_damage, lands
 from gunsystem.dummy import RANGES, Dummy, size_code
-from gunsystem.simulation import (
-    MAGAZINES_PER_RANGE,
-    MAX_BULK_SHOTS,
-    REPORT_DIR,
-    MagazineResult,
-    balance_runs,
-    combine,
-    run_bulk,
-    write_report,
-)
+from gunsystem.simulation import MAGAZINES_PER_RANGE, MAX_BULK_SHOTS, MagazineResult, balance_runs, combine, run_bulk
 from gunsystem.target import SIZES
 from gunsystem.util import to_int
 from webapp.range_session import RangeSession
@@ -40,7 +33,7 @@ RESULTS_PER_PAGE = 50
 # Balance results are kept for this many accounts, dropping the one that ran a report longest ago.
 MAX_BALANCE_RESULTS = 20
 BALANCE_METRICS = {"accuracy": "Accuracy", "destroyed": "Dummies destroyed", "damage": "Damage"}
-THEMES = {"range": "Range", "hud": "HUD", "cyberpunk": "Cyberpunk", "dark": "Dark", "light": "Light"}
+THEMES = {"range": "Range", "cyberpunk": "Cyberpunk", "dark": "Dark", "light": "Light"}
 COVERAGE_DIR = Path(__file__).resolve().parent.parent / "coverage"
 # A balance run takes a few seconds of CPU, so only one runs at a time.
 _balance_lock = threading.Lock()
@@ -69,6 +62,12 @@ def inject_globals():
 def percent(value: float, maximum: float = 100) -> int:
     """value as a whole percentage of maximum, kept between 0 and 100 for meter widths."""
     return round(max(0, min(value, maximum)) / maximum * 100) if maximum else 0
+
+
+@bp.app_template_filter("slug")
+def slug(name: str) -> str:
+    """The name's letters and digits in lower case, anything else a single hyphen: "USP .45" is "usp-45"."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
 @bp.app_template_filter("chance_class")
@@ -159,13 +158,26 @@ def armory_category(category: str):
     return render_template("armory_category.html", category=category, groups=Catalog.by_class(category))
 
 
+def _hit_damage(weapon: Weapon, distance: int) -> int:
+    """What a hit does on average at this distance: the banded damage, and for a shotgun the share of pellets that
+    land. Nothing past max range."""
+    if distance > weapon.max_range:
+        return 0
+    damage = compute_damage(distance, weapon.range_m, weapon.max_range, weapon.damage)
+    if weapon.pellets == 1:
+        return damage
+    per_pellet = sum(lands(roll, weapon, Target(distance)) for roll in range(1, 101)) / 100
+    return round(damage * per_pellet)
+
+
 @bp.get("/armory/weapon/<name>")
 def weapon_detail(name: str):
     weapon = _weapon_or_404(name)
     return render_template(
         "weapon.html",
         weapon=weapon,
-        lane_chances=[(distance, hit_chance(weapon, Target(distance))) for distance in RANGES],
+        chances=[(distance, round(hit_chance(weapon, Target(distance)) * 100)) for distance in RANGES],
+        damages=[(distance, _hit_damage(weapon, distance)) for distance in RANGES],
     )
 
 
@@ -320,23 +332,25 @@ def bulk_form(name: str):
     weapon = _weapon_or_404(name)
     args = request.args
     modes = {mode.value: mode for mode in weapon.fire_modes}
+    max_magazines = max(1, MAX_BULK_SHOTS // weapon.max_ammo)
     values = {
-        "shots": min(max(to_int(args.get("shots"), weapon.max_ammo), 1), MAX_BULK_SHOTS),
+        "magazines": min(max(to_int(args.get("magazines"), 1), 1), max_magazines),
         "size": size_code(args.get("size")),
         "distance": _distance(args.get("distance")),
         "mode": modes.get(args.get("mode"), weapon.fire_modes[0]),
     }
     report = None
-    if "shots" in args:
+    if "magazines" in args:
         dummy = Dummy(values["size"], values["distance"])
-        magazines = run_bulk(weapon, values["shots"], dummy, values["mode"])
+        magazines = run_bulk(weapon, values["magazines"] * weapon.max_ammo, dummy, values["mode"])
         report = {"magazines": magazines, "totals": combine(magazines)}
     return render_template(
         "bulk_form.html",
         weapon=weapon,
         values=values,
         report=report,
-        max_shots=MAX_BULK_SHOTS,
+        max_magazines=max_magazines,
+        load_label="Magazines" if weapon.reload_style is ReloadStyle.MAGAZINE else "Reloads",
         sizes=SIZES,
         ranges=RANGES,
     )
@@ -358,7 +372,6 @@ def balance():
         metrics=BALANCE_METRICS,
         ranges=RANGES,
         magazines=MAGAZINES_PER_RANGE,
-        report_dir=REPORT_DIR,
         can_run=_balance_owner() is not None,
     )
 
@@ -373,20 +386,18 @@ def balance_run():
         flash("Another balance report is running. Try again in a few seconds.")
         return redirect(url_for(".balance", **_balance_args()))
     try:
-        report = _balance_report(request.form.get("write_files") == "on")
+        report = _balance_report()
     finally:
         _balance_lock.release()
     _keep_balance(owner, report)
-    flash("Report finished." + (f" Text reports saved to {REPORT_DIR}/." if report["wrote_files"] else ""))
+    flash("Report finished.")
     return redirect(url_for(".balance", **_balance_args()))
 
 
-def _balance_report(write_files: bool) -> dict:
+def _balance_report() -> dict:
     started = time.perf_counter()
     rows = []
     for weapon, fire_mode, size, ranges in balance_runs():
-        if write_files:
-            write_report(weapon, fire_mode, size, ranges)
         rows.append(
             {
                 "group": weapon.weapon_type.class_name,
@@ -403,7 +414,6 @@ def _balance_report(write_files: bool) -> dict:
         "rows": rows,
         "finished": time.strftime("%H:%M:%S"),
         "seconds": round(time.perf_counter() - started, 1),
-        "wrote_files": write_files,
     }
 
 

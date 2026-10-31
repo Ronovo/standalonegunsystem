@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "_macros.html" import back_link, class_icon, distance_radios, meter, size_radios %}
+{% from "_macros.html" import back_link, distance_radios, gun_icon, meter, size_radios %}
 {% block title %}Bulk · {{ weapon.name }}{% endblock %}
 {% block back %}{{ back_link(url_for('main.bulk'), "Weapons") }}{% endblock %}
 {% block content %}
 <section class="panel loadout-head">
-  {{ class_icon(weapon.weapon_type.class_name, "md") }}
+  {{ gun_icon(weapon, "md") }}
   <div>
     <p class="eyebrow">Bulk report</p>
     <h1 class="display">{{ weapon.name }}</h1>
@@ -13,9 +13,6 @@
 </section>
 
 <form method="get" class="panel form-grid" data-busy="Firing…">
-  <label class="inline-field">Shots to test
-    <input type="number" name="shots" min="1" max="{{ max_shots }}" value="{{ values.shots }}">
-  </label>
   <fieldset class="radio-group"><legend>Distance</legend>{{ distance_radios(ranges, values.distance) }}</fieldset>
   <fieldset class="radio-group"><legend>Dummy size</legend>{{ size_radios(sizes, values.size) }}</fieldset>
   <fieldset class="radio-group"><legend>Fire mode</legend>
@@ -23,6 +20,9 @@
       <label class="chip"><input type="radio" name="mode" value="{{ mode.value }}" {% if mode == values.mode %}checked{% endif %}> {{ mode.display_name }}</label>
     {% endfor %}
   </fieldset>
+  <label class="inline-field">{{ load_label }}
+    <input type="number" name="magazines" min="1" max="{{ max_magazines }}" value="{{ values.magazines }}">
+  </label>
   <button class="menu-item primary" data-key="1"><span class="key">1</span><span class="label">Run report</span></button>
 </form>
 
@@ -39,6 +39,9 @@
   </div>
   {{ meter(totals.accuracy, 100, "wide " ~ (totals|accuracy_class)) }}
 
+  {% if report.magazines|length < 2 %}
+  <p class="muted">Fire more than one magazine to get a report by magazine.</p>
+  {% else %}
   <h2 class="panel-title">ACCURACY BY MAGAZINE</h2>
   <div class="mag-chart">
     {% for magazine in report.magazines %}
@@ -73,6 +76,7 @@
       </tfoot>
     </table>
   </div>
+  {% endif %}
 </section>
 {% endif %}
 {% endblock %}

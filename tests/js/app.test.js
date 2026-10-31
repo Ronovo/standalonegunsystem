@@ -123,14 +123,37 @@ describe('Escape', () => {
   });
 });
 
+describe('tabs', () => {
+  const tabs = `<div data-tabs>
+    <input type="radio" name="class" value="a" data-tab checked><input type="radio" name="class" value="b" data-tab>
+    <ol data-panel="a"></ol><ol data-panel="b"></ol></div>`;
+  const hidden = () => ['a', 'b'].map((name) => document.querySelector(`[data-panel="${name}"]`).hidden);
+
+  it('show only the panel of the checked tab', async () => {
+    await load(tabs);
+    expect(hidden()).toEqual([false, true]);
+    const other = document.querySelector('[value="b"]');
+    other.checked = true;
+    other.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(hidden()).toEqual([true, false]);
+  });
+});
+
 describe('busy forms', () => {
-  const form = '<form data-busy="Firing…"><button data-key="1">Run report</button></form>';
+  const form = '<form data-busy="Firing…"><button data-key="1"><span class="key">1</span><span class="label">Run report</span></button></form>';
+  const label = () => document.querySelector('.label').textContent;
 
   it('show the busy text and disable the button while submitting', async () => {
     await load(form);
     document.querySelector('form').dispatchEvent(new Event('submit'));
     const button = document.querySelector('button');
-    expect([button.textContent, button.disabled]).toEqual(['Firing…', true]);
+    expect([label(), button.querySelector('.key').textContent, button.disabled]).toEqual(['Firing…', '1', true]);
+  });
+
+  it('with a plain button show the busy text on the button itself', async () => {
+    await load('<form data-busy="Firing…"><button>Run report</button></form>');
+    document.querySelector('form').dispatchEvent(new Event('submit'));
+    expect(document.querySelector('button').textContent).toBe('Firing…');
   });
 
   it('come back ready when the page is shown again', async () => {
@@ -138,7 +161,7 @@ describe('busy forms', () => {
     document.querySelector('form').dispatchEvent(new Event('submit'));
     window.dispatchEvent(new Event('pageshow'));
     const button = document.querySelector('button');
-    expect([button.textContent, button.disabled]).toEqual(['Run report', false]);
+    expect([label(), button.querySelector('.key').textContent, button.disabled]).toEqual(['Run report', '1', false]);
   });
 
   it('without a button are left alone', async () => {

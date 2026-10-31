@@ -1,4 +1,5 @@
 import os
+import re
 import runpy
 import tempfile
 import unittest
@@ -67,7 +68,7 @@ class WebAppTests(unittest.TestCase):
         for url in ("/", "/armory", "/range/setup", "/balance"):
             page = self.client.get(url).get_data(as_text=True)
             self.assertIn('<select data-theme-picker>', page, url)
-            self.assertIn('<option value="hud">HUD</option>', page, url)
+            self.assertIn('<option value="cyberpunk">Cyberpunk</option>', page, url)
 
     def test_the_range_page_carries_its_state_for_live_fire(self):
         self.enter_range(weapon="MP5", size="m", distance="100")
@@ -113,17 +114,36 @@ class WebAppTests(unittest.TestCase):
         self.assertIn("8 of 8 pellets.", page)
         self.assertEqual(self.range_state()["log"][0]["shots"][0][2], 8)
 
-    def test_the_weapon_page_lists_hit_chance_per_lane(self):
+    def test_the_weapon_page_charts_hit_chance_and_damage_per_distance(self):
         page = self.client.get("/armory/weapon/M40A3").get_data(as_text=True)
         self.assertIn("20 rpm", page)
-        self.assertIn("HIT CHANCE BY LANE", page)
-        self.assertEqual(page.count('<span class="caption">500 m</span>'), 1)
+        self.assertIn("HIT CHANCE BY DISTANCE", page)
+        self.assertIn("DAMAGE BY DISTANCE", page)
+        self.assertEqual(page.count('<span class="caption">500 m</span>'), 2)
+
+    def test_shotgun_damage_per_distance_counts_the_pellets_that_land(self):
+        page = self.client.get("/armory/weapon/M1014").get_data(as_text=True)
+        damage = re.search(r'DAMAGE BY DISTANCE.*?</section>', page, re.S).group(0)
+        self.assertEqual(re.findall(r'<span class="num">(\d+)</span>', damage), ["95", "90", "20", "0", "0", "0", "0"])
 
     def test_auto_fire_defaults_to_one_second_of_fire(self):
         self.enter_range(weapon="MP5")
         self.assertEqual(self.range_state()["rounds"], 13)
         self.client.post("/range/weapon", data={"weapon": "USAS-12"})
         self.assertEqual(self.range_state()["rounds"], 5)
+
+    def test_rounds_per_pull_follow_the_fire_mode(self):
+        self.enter_range(weapon="M16A4")
+        page = self.client.get("/range").get_data(as_text=True)
+        self.assertIn('name="rounds" form="fire-form" value="1" disabled', page)
+        self.client.post("/range/mode", data={"mode": "3r"})
+        page = self.client.get("/range").get_data(as_text=True)
+        self.assertIn('name="rounds" form="fire-form" value="3" disabled', page)
+        self.client.post("/range/mode", data={"mode": "fa"})
+        page = self.client.get("/range").get_data(as_text=True)
+        self.assertIn('name="rounds" form="fire-form" min="2" max="30" value="13"', page)
+        self.client.post("/range/fire", data={"rounds": "1"})
+        self.assertEqual(len(self.range_state()["log"][0]["marks"]), 2)
 
     def test_auto_fire_uses_requested_rounds(self):
         self.enter_range(weapon="M249 SAW", size="l", distance="500")
@@ -211,6 +231,22 @@ class WebAppTests(unittest.TestCase):
         page = self.client.get("/range/setup", query_string={"weapon": "AK47"}).get_data(as_text=True)
         self.assertIn('value="AK47" required checked', page)
 
+    def test_setup_picks_guns_by_class_tab(self):
+        page = self.client.get("/range/setup").get_data(as_text=True)
+        for class_name in Catalog.by_class():
+            self.assertIn(f'name="class" value="{class_name}" data-tab', page)
+        self.assertIn('value="Pistol" data-tab checked', page)
+        self.assertEqual(page.count('name="weapon"'), len(Catalog.names()))
+        self.enter_range(weapon="M40A3")
+        page = self.client.get("/range/weapon").get_data(as_text=True)
+        self.assertIn('value="Sniper" data-tab checked', page)
+        self.assertIn('data-gun="m40a3"', page)
+
+    def test_every_gun_has_its_own_drawing(self):
+        for name in Catalog.names():
+            page = self.client.get(f"/armory/weapon/{name}").get_data(as_text=True)
+            self.assertIn(f'data-gun="{views.slug(name)}"', page, name)
+
     def test_switching_weapons_needs_a_range(self):
         self.assertTrue(self.client.get("/range/weapon").location.endswith("/range/setup"))
         self.assertTrue(self.client.post("/range/weapon", data={"weapon": "AK47"}).location.endswith("/range/setup"))
@@ -256,19 +292,31 @@ class WebAppTests(unittest.TestCase):
         self.assertIn("Ammo already full. No need to reload.", page.get_data(as_text=True))
 
     def test_bulk_report(self):
-        response = self.client.get("/bulk/MP5", query_string={"shots": 65, "size": "m", "distance": 100, "mode": "fa"})
+        response = self.client.get("/bulk/MP5", query_string={"magazines": 3, "size": "m", "distance": 100, "mode": "fa"})
         page = response.get_data(as_text=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn("BREAKDOWN BY MAGAZINE", page)
-        self.assertIn("<th>65</th>", page)
+        self.assertIn("<th>90</th>", page)
 
-    def test_bulk_report_is_capped(self):
-        page = self.client.get("/bulk/MP5", query_string={"shots": 10 ** 9}).get_data(as_text=True)
-        self.assertIn(f"<th>{MAX_BULK_SHOTS}</th>", page)
+    def test_bulk_report_is_capped_at_whole_magazines(self):
+        page = self.client.get("/bulk/MP5", query_string={"magazines": 10 ** 9}).get_data(as_text=True)
+        self.assertIn(f"<th>{MAX_BULK_SHOTS // 30 * 30}</th>", page)
 
-    def test_bulk_form_offers_a_magazine_before_firing(self):
+    def test_bulk_form_offers_one_magazine_before_firing(self):
         page = self.client.get("/bulk/MP5").get_data(as_text=True)
-        self.assertIn(f'name="shots" min="1" max="{MAX_BULK_SHOTS}" value="30"', page)
+        self.assertIn(f'name="magazines" min="1" max="{MAX_BULK_SHOTS // 30}" value="1"', page)
+        self.assertIn(">Magazines", page)
+        self.assertNotIn("BREAKDOWN BY MAGAZINE", page)
+
+    def test_bulk_form_counts_reloads_for_guns_without_a_magazine(self):
+        for name in ("W1200", ".38 Special"):
+            self.assertIn(">Reloads", self.client.get(f"/bulk/{name}").get_data(as_text=True), name)
+        self.assertIn(">Magazines", self.client.get("/bulk/USAS-12").get_data(as_text=True))
+
+    def test_one_magazine_gives_no_report_by_magazine(self):
+        page = self.client.get("/bulk/MP5", query_string={"magazines": 1}).get_data(as_text=True)
+        self.assertIn("TOTALS FOR ALL SHOTS", page)
+        self.assertIn("Fire more than one magazine to get a report by magazine.", page)
         self.assertNotIn("BREAKDOWN BY MAGAZINE", page)
 
     def test_balance_report_runs_and_filters(self):

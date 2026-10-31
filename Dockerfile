@@ -39,7 +39,6 @@ RUN pip install --no-cache-dir ".[web]" gunicorn==23.0.0 \
     && mkdir -p /app/data \
     && chown -R gunsystem /app
 
-COPY --chown=gunsystem demo ./demo
 COPY --chown=gunsystem webapp ./webapp
 COPY --chown=gunsystem coverage-index/index.html ./coverage/
 COPY --chown=gunsystem coverage-reports.json ./coverage/reports.json

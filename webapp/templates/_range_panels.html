@@ -1,10 +1,10 @@
-{% from "_macros.html" import ammo_display, class_icon, meter, size_radios %}
+{% from "_macros.html" import ammo_display, gun_icon, meter, size_radios %}
 {% set health = [dummy.health, 0]|max %}
 <div class="range-grid">
   <section class="panel loadout">
     <h2 class="panel-title">LOADOUT</h2>
     <div class="loadout-head">
-      {{ class_icon(weapon.weapon_type.class_name, "md") }}
+      {{ gun_icon(weapon, "md") }}
       <div>
         <strong class="display">{{ weapon.name }}</strong><br>
         <span class="muted">{{ weapon.weapon_type.class_name }} · {{ rs.fire_mode.display_name }}</span>
@@ -27,7 +27,7 @@
   </section>
 
   <section class="panel lane">
-    <h2 class="panel-title">LANE · <span data-bind="distance">{{ dummy.distance }}</span> M</h2>
+    <h2 class="panel-title">DUMMY · <span data-bind="distance">{{ dummy.distance }}</span> M</h2>
     <div class="lane-view">
       <svg class="lane-scene" viewBox="0 0 600 240" preserveAspectRatio="none" aria-hidden="true">
         <rect class="scene-wall" width="600" height="110"/>
@@ -63,16 +63,11 @@
     {% else %}
       <ol class="menu">
         <li>
-          <form method="post" action="{{ url_for('main.range_fire') }}" class="menu-row" data-live="fire">
+          <form method="post" action="{{ url_for('main.range_fire') }}" id="fire-form" data-live="fire">
             <button class="menu-item fire" data-key="1" {% if not weapon.current_ammo %}disabled{% endif %}>
               <span class="key">1</span><span class="label">Fire {{ rs.fire_label }}</span>
               {% if not weapon.current_ammo %}<span class="hint">Out of ammo</span>{% endif %}
             </button>
-            {% if rs.fire_mode.name == "AUTO" %}
-              <label class="inline-field">Rounds
-                <input type="number" name="rounds" min="1" max="{{ weapon.max_ammo }}" value="{{ [rs.state.rounds, weapon.max_ammo]|min }}">
-              </label>
-            {% endif %}
           </form>
         </li>
         <li>
@@ -86,6 +81,13 @@
               {% endfor %}
             </span>
           </form>
+          <label class="inline-field rounds">Rounds per pull
+            {% if rs.fire_mode.name == "AUTO" %}
+              <input type="number" name="rounds" form="fire-form" min="2" max="{{ weapon.max_ammo }}" value="{{ [rs.state.rounds, weapon.max_ammo]|min }}">
+            {% else %}
+              <input type="number" name="rounds" form="fire-form" value="{{ 3 if rs.fire_mode.name == "BURST" else 1 }}" disabled>
+            {% endif %}
+          </label>
         </li>
         <li>
           <form method="post" action="{{ url_for('main.range_distance') }}" class="menu-row" data-live="distance">

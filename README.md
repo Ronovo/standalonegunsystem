@@ -1,5 +1,5 @@
-# Stand Alone Gun System (Text-Based)
-Simple weapons system built in Python. The `gunsystem` library can be imported into other games; this repo also includes a range demo you can play in the browser (Flask) or in the terminal.
+# Stand Alone Gun System
+Simple weapons system built in Python. The `gunsystem` library can be imported into other games; this repo also includes a range demo you can play in the browser (Flask).
 
 ## Set Up and Run
 ### 1.) Requires Python to be installed
@@ -17,7 +17,7 @@ Simple weapons system built in Python. The `gunsystem` library can be imported i
   - Run `python -m webapp`
   - Open http://127.0.0.1:5000 in your browser
   - Menus can be clicked or driven from the keyboard: number keys pick an item, `Esc` goes back
-  - The top bar picks a theme: Range (the default), HUD, Cyberpunk, Dark or Light. The browser remembers it
+  - The top bar picks a theme: Range (the default), Cyberpunk, Dark or Light. The browser remembers it
   - The range opens in **Live fire**: each pull is posted in the background and played out on the lane, shot by
     shot, with no page reload, and reloads take the gun's reload time. **Forms** switches to plain page reloads,
     which also work with JavaScript off. The browser remembers the choice
@@ -27,7 +27,6 @@ Simple weapons system built in Python. The `gunsystem` library can be imported i
   - Run: `docker run -d --name gunsystem-web -p 8000:8000 gunsystem-web`
   - Open http://127.0.0.1:8000
   - Set `-e GUNSYSTEM_SECRET_KEY=<random string>` to keep range sessions valid across container restarts
-  - Balance text reports are written only when **Write text reports** is ticked, and inside the container; add `-v "${PWD}/Balance Reports:/app/Balance Reports"` to keep them on your machine
   - On every start the container runs `docker/git-sync.sh`, which fetches the latest commit on GitHub `main`
     over the code in the image, so a pushed commit goes live on the next restart. If GitHub can't be reached it
     starts on the code it already has. Set `-e REPO_URL=` to run exactly what is in the image instead
@@ -39,10 +38,6 @@ Simple weapons system built in Python. The `gunsystem` library can be imported i
   - With `PORTFOLIO_SSO_URL` (the portfolio's address) and `PORTFOLIO_SSO_PUBLIC_KEY` (printed by the portfolio's `python sso.py`) set, the top bar offers to log in with a portfolio account. It reads **Log in as** and the portfolio username when this browser is logged in to the portfolio
   - While logged in, that progress is also kept for the portfolio account in `DATA_DIR` (`data` in the folder you run from, `/app/data` in the container, so add a volume there). Logging in on another browser takes whichever range is newer and the higher destroyed count
   - When a different account logs in on the same browser, the progress kept there for the last account stays with that account instead of joining the new one. Range played after logging out belongs to nobody, and joins whichever account logs in next
-
-### 5.) Terminal version
-  - Run `python -m demo`
-  - The game starts in your terminal window
 
 ## Using as a library
 From the repo (or with `gunsystem/` on your Python path):
@@ -60,7 +55,7 @@ result = resolve_shot(gun, Target(distance=100, size="m"))
 "heavy") and `moving`. `hit_chance(gun, target)` gives the odds of a hit before you fire, from the same rules.
 
 `gunsystem.dummy` (practice dummies and their sizes) and `gunsystem.simulation` (magazine runs and the balance
-reports) are the parts the terminal and web versions share.
+report) are what the web app builds on.
 
 ## Tests
 From the repo root, with the web and test extras installed (`pip install -e ".[web,test]"`):
@@ -70,7 +65,7 @@ python -m unittest discover -s tests -t .
 ```
 
 The tests turn portfolio login on and off themselves and keep their data in temporary folders, so they don't
-depend on the shell's settings or write into the repo. The terminal demo's tests answer its prompts for it.
+depend on the shell's settings or write into the repo.
 
 The browser scripts in `webapp/static` (keyboard and toasts, the theme picker, and the live range) have their own
 tests in `tests/js`, run with Vitest on Node.js after
@@ -112,7 +107,8 @@ stop the image build; the reports show what is missing.
    A critical does x3 damage 80% of the time, x2 the rest.
 
 `hit_chance` works the same modifiers out as a probability instead of rolling, which is what the range and the
-armory show.
+armory show. The armory also charts the damage a hit does at each distance, for a shotgun scaled by the pellets
+that usually land.
 
 On full auto, a trigger pull fires one second of the gun's rate of fire (an MP5 at 800 rpm fires 13 rounds, a
 USAS-12 at 300 rpm fires 5). That is the range's starting setting, and what bulk fire and balance reports use;
@@ -125,15 +121,14 @@ each pull starts a new string just as it does on the range.
     moving targets, and an exact hit chance for any shot
 - Rate of fire and reload time for every gun
 - Armory Menu to look at all your guns!
-- Five themes for the browser version, remembered per browser
+- Four themes for the browser version, remembered per browser
 - Gun Range to test out all your guns!
   - Live fire in the browser: hits, misses and criticals land on the dummy as they happen
   - Dynamic hit calculation based on Target Distance and Gun Type!
   - Counter to keep track of how many Dummies you have destroyed
 - Bulk Fire report to test weapon balancing, with firing options per gun (up to 1000 shots)
 - Balance Report Functionality
-    - Writes one text file per weapon, dummy size and firing mode, in `Balance Reports/<Class>/<Weapon>/<Size>/<Mode>.txt` under the folder you run it from. The terminal always writes them; the browser only when **Write text reports** is ticked
-    - In the browser, with portfolio login set up, running one needs a portfolio login, only one runs at a time, and each account sees its own latest results
+    - With portfolio login set up, running one needs a portfolio login, only one runs at a time, and each account sees its own latest results
     - Each Report includes stats for 15 Full Magazines shot at:
         - Each Type of Dummy
         - Every Range listed in the Range Menu

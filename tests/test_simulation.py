@@ -8,7 +8,6 @@ from gunsystem.simulation import (
     MAX_BULK_SHOTS,
     MagazineResult,
     plan_magazines,
-    report_lines,
     run_magazines,
 )
 
@@ -32,6 +31,9 @@ class MagazinePlanTests(unittest.TestCase):
     def test_bulk_fire_is_capped(self):
         self.assertEqual(plan_magazines(100, 10 ** 9), (MAX_BULK_SHOTS // 100, 100))
 
+    def test_fewer_than_one_shot_means_one_full_magazine(self):
+        self.assertEqual(plan_magazines(30, 0), (1, 30))
+
 
 class DummyInstanceTests(unittest.TestCase):
     def test_dummies_do_not_share_health(self):
@@ -52,12 +54,6 @@ class DummyInstanceTests(unittest.TestCase):
         self.assertEqual(Dummy("l").size_label, "Large")
         with self.assertRaises(ValueError):
             Dummy("Large")
-
-
-class ReportLineTests(unittest.TestCase):
-    def test_critical_hits_are_listed_after_the_damage(self):
-        line = report_lines([MagazineResult(hits=2, misses=1, damage=300, crits=1)])[2]
-        self.assertEqual(line, "Magazine 1: 2 Hits / 1 Misses / 0 Dummies Destroyed / 300 Damage Done / Critical Hits: 1")
 
 
 class SprayStringTests(unittest.TestCase):

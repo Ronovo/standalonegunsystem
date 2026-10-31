@@ -31,7 +31,8 @@ const panels = ({ ammo = 7, health = 200, destroyed = false, lane = true } = {})
   ${lane ? `<div class="dummy${destroyed ? ' destroyed' : ''}" data-bind="dummy"></div>
   <div class="reticle" data-bind="reticle"></div>
   <div class="lane-fx" data-bind="fx"></div>` : ''}
-  <form data-live="fire" action="/range/fire"><button name="go" value="1">Fire</button></form>
+  <form data-live="fire" action="/range/fire" id="fire"><button name="go" value="1">Fire</button></form>
+  <input name="rounds" form="fire" value="5">
   <form data-live="mode" action="/range/mode"><button name="mode" value="fa">Auto</button></form>
   <form data-live="reload" action="/range/reload"><button data-seconds="2">Reload</button></form>
   <form action="/range/leave"><button>Quit</button></form>`;
@@ -117,7 +118,8 @@ describe('live fire', () => {
     expect(event.defaultPrevented).toBe(true);
     const [url, options] = fetch.mock.calls[0];
     expect(url).toContain('/range/fire');
-    expect([options.method, options.headers.Accept, options.body.get('go')]).toEqual(['POST', 'application/json', '1']);
+    expect([options.method, options.headers.Accept, options.body.get('go'), options.body.get('rounds')])
+      .toEqual(['POST', 'application/json', '1', '5']);
 
     expect(document.querySelector('.reticle').classList.contains('firing')).toBe(true);
     expect([text('health'), text('ammo')]).toEqual(['160', '6/7']);

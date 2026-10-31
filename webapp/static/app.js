@@ -37,17 +37,30 @@
     else flush();
   });
 
+  // Tabs: the panel named after the checked tab shows, the rest hide.
+  document.querySelectorAll("[data-tabs]").forEach((tabs) => {
+    const show = () => {
+      const current = tabs.querySelector("[data-tab]:checked").value;
+      tabs.querySelectorAll("[data-panel]").forEach((panel) => {
+        panel.hidden = panel.dataset.panel !== current;
+      });
+    };
+    tabs.addEventListener("change", show);
+    show();
+  });
+
   document.querySelectorAll("form[data-busy]").forEach((form) => {
     const button = form.querySelector("button");
     if (!button) return;
-    const idle = button.textContent;
+    const label = button.querySelector(".label") || button;
+    const idle = label.textContent;
     form.addEventListener("submit", () => {
-      button.textContent = form.dataset.busy;
+      label.textContent = form.dataset.busy;
       button.disabled = true;
     });
     // Going back to this page can show it as it was left, with the button still busy.
     window.addEventListener("pageshow", () => {
-      button.textContent = idle;
+      label.textContent = idle;
       button.disabled = false;
     });
   });

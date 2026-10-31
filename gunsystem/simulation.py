@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Iterator
 
 from gunsystem import Catalog, FireMode, ShotResult, Weapon, advance_string, resolve_shot
@@ -8,8 +7,6 @@ from gunsystem.target import SIZES
 
 MAGAZINES_PER_RANGE = 15
 MAX_BULK_SHOTS = 1000
-REPORT_DIR = Path("Balance Reports")
-RULE = "-" * 36
 
 
 @dataclass
@@ -37,41 +34,6 @@ def combine(magazines: list[MagazineResult]) -> MagazineResult:
         damage=sum(m.damage for m in magazines),
         crits=sum(m.crits for m in magazines),
     )
-
-
-def report_lines(magazines: list[MagazineResult]) -> list[str]:
-    lines = ["Breakdown by Magazine", "--------------------"]
-    for n, magazine in enumerate(magazines, start=1):
-        line = (
-            f"Magazine {n}: {magazine.hits} Hits / {magazine.misses} Misses / "
-            f"{magazine.destroyed} Dummies Destroyed / {magazine.damage} Damage Done"
-        )
-        if magazine.crits > 0:
-            line += f" / Critical Hits: {magazine.crits}"
-        lines.append(line)
-    totals = combine(magazines)
-    return lines + [
-        "",
-        "Totals for All Shots",
-        "--------------------",
-        f"{totals.accuracy}% Accuracy / {totals.destroyed} Dummies Destroyed / {totals.damage} Damage Done",
-        RULE,
-        "",
-    ]
-
-
-def write_report(
-    weapon: Weapon,
-    fire_mode: FireMode,
-    size: str,
-    ranges: list[tuple[int, list[MagazineResult]]],
-) -> None:
-    report_dir = REPORT_DIR / weapon.weapon_type.class_name / weapon.name / SIZES[size].label
-    report_dir.mkdir(parents=True, exist_ok=True)
-    lines = [f"Balance Report for {weapon.name}", RULE, ""]
-    for distance, magazines in ranges:
-        lines += [f"Results for {distance}M", RULE, "", *report_lines(magazines)]
-    (report_dir / (fire_mode.display_name + ".txt")).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def plan_magazines(max_ammo: int, total_shots: int) -> tuple[int, int]:

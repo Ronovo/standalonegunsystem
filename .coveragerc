@@ -2,7 +2,6 @@
 branch = True
 source =
     gunsystem
-    demo
     webapp
 
 [report]

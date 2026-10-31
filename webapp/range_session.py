@@ -144,7 +144,7 @@ class RangeSession:
             return "The dummy is already destroyed. Set up a new one."
         if self.weapon.current_ammo == 0:
             return "Out of Ammo! Try Reloading."
-        requested = min(max(requested, 1), self.weapon.max_ammo)
+        requested = min(max(requested, 2), self.weapon.max_ammo)
         if self.fire_mode is FireMode.AUTO:
             self.state["rounds"] = requested
         shots = pull_trigger(self.weapon, self.dummy, self.fire_mode, requested)

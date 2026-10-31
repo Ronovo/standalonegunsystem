@@ -1,13 +1,8 @@
-import os
-import tempfile
 import unittest
 from unittest import mock
 
 import gunsystem.simulation
-from demo.ui.weapons import interactive_reload
 from gunsystem import Catalog, FireMode, ReloadStep
-from gunsystem.dummy import Dummy
-from gunsystem.simulation import run_magazines, write_report
 from tests.helpers import log_in, make_app
 from webapp import views
 
@@ -35,28 +30,6 @@ class ReloadStepTests(unittest.TestCase):
         self.assertIs(weapon.next_reload_step(loading=True), ReloadStep.ROUND)
         self.assertEqual(weapon.take_reload_step(ReloadStep.ROUND), "One bullet loaded. 5 remaining.")
         self.assertEqual(weapon.current_ammo, 1)
-
-    def test_terminal_reload_uses_the_same_steps(self):
-        weapon = Catalog.create(".38 Special")
-        weapon.current_ammo = 2
-        with mock.patch("builtins.input", return_value=""), mock.patch("builtins.print"):
-            self.assertTrue(interactive_reload(weapon))
-        self.assertEqual(weapon.current_ammo, weapon.max_ammo)
-
-
-class ReportFileTests(unittest.TestCase):
-    def test_report_is_written_without_touching_stdout(self):
-        weapon = Catalog.create("M1911")
-        weapon.reload()
-        magazines = run_magazines(weapon, 1, Dummy("s"), FireMode.SINGLE)
-        with tempfile.TemporaryDirectory() as folder, mock.patch.object(gunsystem.simulation, "REPORT_DIR",
-                                                                         gunsystem.simulation.Path(folder)):
-            write_report(weapon, FireMode.SINGLE, "s", [(50, magazines)])
-            path = os.path.join(folder, weapon.weapon_type.class_name, "M1911", "Small", "Single Shot.txt")
-            with open(path, encoding="utf-8") as report:
-                text = report.read()
-        self.assertTrue(text.startswith("Balance Report for M1911\n" + "-" * 36 + "\n\nResults for 50M\n"))
-        self.assertIn("Totals for All Shots", text)
 
 
 class RangeSessionTests(unittest.TestCase):
@@ -110,14 +83,6 @@ class BalanceAccessTests(unittest.TestCase):
         first.post("/balance")
         self.assertNotIn(b"No balance report has been run yet.", first.get("/balance/results").data)
         self.assertIn(b"No balance report has been run yet.", second.get("/balance/results").data)
-
-    def test_written_reports_land_in_the_report_folder(self):
-        client = self.logged_in("1")
-        with tempfile.TemporaryDirectory() as folder, mock.patch.object(views, "REPORT_DIR", folder), \
-                mock.patch.object(gunsystem.simulation, "REPORT_DIR", gunsystem.simulation.Path(folder)):
-            page = client.post("/balance", data={"write_files": "on"}, follow_redirects=True).data
-            self.assertTrue(os.path.exists(os.path.join(folder, "Sniper", "M40A3", "Small", "Single Shot.txt")))
-        self.assertIn(b"Text reports saved to", page)
 
     def test_results_are_dropped_for_the_account_that_ran_one_longest_ago(self):
         clients = {sub: self.logged_in(sub) for sub in ("1", "2", "3")}

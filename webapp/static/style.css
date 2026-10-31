@@ -49,41 +49,6 @@
   --clip: none;
 }
 
-:root[data-theme="hud"] {
-  --bg: #05080c;
-  --panel: #0b1118;
-  --panel-2: #10202c;
-  --line: #163040;
-  --line-strong: #1f4a63;
-  --text: #cfe6f2;
-  --muted: #6f93a6;
-  --accent: #19d3ff;
-  --accent-ink: #02141a;
-  --accent-2: #ffb020;
-  --hit: #3ddc84;
-  --crit: #ffd166;
-  --miss: #ff5c5c;
-  --mid: #ffb020;
-  --dummy: #9fb8c6;
-  --dummy-ring: #ff5c5c;
-  --post: #2c4252;
-  --wall: #081118;
-  --floor: #0c1a24;
-  --lane-line: #1a4d63;
-  --font-display: "Orbitron", system-ui, sans-serif;
-  --radius: 2px;
-  --caps: uppercase;
-  --tracking: 0.12em;
-  --glow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
-  --backdrop:
-    radial-gradient(60% 50% at 50% 0%, rgb(25 211 255 / 0.1), transparent 70%),
-    linear-gradient(rgb(25 211 255 / 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
-    linear-gradient(90deg, rgb(25 211 255 / 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
-    var(--bg);
-  --scanlines: repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.2) 0 1px, transparent 1px 3px);
-  --corner: "";
-}
-
 :root[data-theme="cyberpunk"] {
   --bg: #07070d;
   --panel: #0e0e1a;
@@ -294,7 +259,8 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3p
 .panel-title::before { content: ""; width: 14px; height: 3px; background: var(--accent); box-shadow: var(--glow); }
 .alert { color: var(--crit); font-weight: 700; }
 
-.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); grid-auto-rows: 1fr; }
+.cards > li { display: grid; }
 .cards.menu-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
 .card {
   position: relative;
@@ -329,7 +295,8 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3p
 .icon-row { display: flex; gap: 6px; color: var(--muted); }
 .weapon-card { align-items: flex-start; }
 .mini-stats { display: grid; gap: 3px; }
-.mini-stats > span { display: grid; grid-template-columns: 3.5ch 1fr 5ch; align-items: center; gap: 8px; font-size: 12px; }
+.mini-stats > span { display: grid; grid-template-columns: 3.5ch minmax(0, 1fr) 6ch; align-items: center; gap: 8px; font-size: 12px; }
+.mini-stats .meter { width: 100%; min-width: 0; }
 .mini-stats .caption { margin: 0; font-size: 11px; }
 .mini-stats .num { text-align: right; }
 
@@ -397,7 +364,7 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3p
 .chip:hover, .chip:focus-visible, .chip:focus-within { border-color: var(--accent); box-shadow: var(--glow); outline: none; }
 .chip.active, .chip:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .chip:has(input:checked) .muted { color: inherit; opacity: 0.75; }
-.chip input[type="radio"] { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.chip input[type="radio"], .gun-card input[type="radio"] { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
 input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); margin: 0; }
 .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .segmented .chip { border: 0; border-radius: 0; }
@@ -418,6 +385,11 @@ input[type="number"] { width: 7ch; }
 .form-grid { display: grid; gap: 14px; justify-items: start; }
 .setup { display: grid; gap: 16px; justify-items: stretch; }
 .setup > .menu-item { justify-self: start; }
+.picker .tabs { margin-bottom: 12px; }
+.gun-card { cursor: pointer; }
+.gun-card:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); box-shadow: var(--glow); }
+.gun-card:focus-within { outline: var(--focus); }
+.rounds { margin-top: 6px; }
 
 .meter {
   display: inline-block;
@@ -462,9 +434,6 @@ input[type="number"] { width: 7ch; }
 .scene-floor { fill: var(--floor); }
 .scene-lane { stroke: var(--lane-line); stroke-width: 2; fill: none; }
 .scene-dummy { fill: var(--dummy); }
-.scene-reticle { fill: none; stroke: var(--accent); stroke-width: 2; transform-origin: 246px 80px; animation: breathe 2.4s ease-in-out infinite; }
-.scene-lights { fill: var(--accent); animation: blink 3s steps(2) infinite; }
-.scene-tracer { stroke: var(--crit); stroke-width: 2; stroke-dasharray: 14 300; stroke-linecap: round; animation: tracer 1.8s linear infinite; }
 .scene-tick { stroke: var(--line-strong); stroke-width: 1; }
 .scene-mark { fill: var(--muted); font: 11px var(--font-mono); }
 
@@ -492,8 +461,8 @@ input[type="number"] { width: 7ch; }
 .loadout-head h1 { margin: 0; }
 
 .lane-chart, .mag-chart { display: flex; align-items: flex-end; gap: 10px; height: 170px; padding: 8px 4px 0; overflow-x: auto; }
-.lane-bar { position: relative; display: grid; grid-template-rows: 1fr auto; justify-items: center; align-items: end; gap: 6px; flex: 1 1 40px; min-width: 32px; height: 100%; }
-.lane-bar .num { position: absolute; top: 0; font-size: 12px; }
+.lane-bar { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; align-items: end; gap: 6px; flex: 1 1 40px; min-width: 32px; height: 100%; }
+.lane-bar .num { order: -1; font-size: 12px; }
 .lane-bar .caption { margin: 0; font-size: 12px; white-space: nowrap; }
 .lane-fill {
   display: block;
@@ -530,6 +499,7 @@ body[data-range-mode="live"] .mode-switch .chip.active::before { content: "●";
 .lane { grid-area: lane; }
 .shooting { grid-area: shooting; }
 .log { grid-area: log; }
+.range-grid .panel { animation: none; }
 .lane-view {
   position: relative;
   aspect-ratio: 5 / 2;
@@ -665,9 +635,7 @@ body[data-range-mode="live"] .mode-switch .chip.active::before { content: "●";
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 @keyframes grow { from { transform: scaleY(0); } }
 @keyframes pop { from { opacity: 0; transform: scale(0.6); } }
-@keyframes breathe { 50% { transform: scale(1.08); } }
 @keyframes blink { 50% { opacity: 0.25; } }
-@keyframes tracer { to { stroke-dashoffset: -314; } }
 @keyframes kick { 50% { transform: translate(-50%, -50%) scale(1.12); } }
 @keyframes impact { to { transform: scale(2.4); opacity: 0; } }
 @keyframes float { to { transform: translateY(-40px); opacity: 0; } }

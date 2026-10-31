@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import back_link, distance_radios, weapon_radios %}
+{% from "_macros.html" import back_link, distance_radios, weapon_picker %}
 {% block title %}{{ "Switch Weapons" if switching else "Range Setup" }}{% endblock %}
 {% block back %}
   {% if switching %}{{ back_link(url_for('main.range_view'), "Back to range") }}{% else %}{{ back_link(url_for('main.menu'), "Main menu") }}{% endif %}
@@ -9,7 +9,7 @@
   <section class="panel">
     <h1 class="panel-title">{{ "SWITCH WEAPONS" if switching else "WELCOME TO THE GUN RANGE" }}</h1>
     <p class="muted">Please select a weapon:</p>
-    {{ weapon_radios(groups, selected) }}
+    {{ weapon_picker(groups, selected) }}
   </section>
 
   {% if not switching %}

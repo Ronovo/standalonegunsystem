@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "_macros.html" import back_link, class_icon, menu_card, meter %}
+{% from "_macros.html" import back_link, gun_icon, lane_chart, menu_card, meter %}
 {% block title %}{{ weapon.name }}{% endblock %}
 {% block back %}{{ back_link(url_for('main.armory_category', category=weapon.weapon_type.category), weapon.weapon_type.category) }}{% endblock %}
 {% block content %}
 <section class="panel sheet">
-  <div class="sheet-art">{{ class_icon(weapon.weapon_type.class_name, "lg") }}</div>
+  <div class="sheet-art">{{ gun_icon(weapon, "lg") }}</div>
   <div class="sheet-body">
     <p class="eyebrow">{{ weapon.weapon_type.class_name }} · {{ weapon.weapon_type.category }}</p>
     <h1 class="display">{{ weapon.name }}</h1>
@@ -25,18 +25,15 @@
 </section>
 
 <section class="panel">
-  <h2 class="panel-title">HIT CHANCE BY LANE</h2>
-  <p class="muted">Medium dummy, first shot of a pull.</p>
-  <div class="lane-chart">
-    {% for distance, chance in lane_chances %}
-      {% set pct = (chance * 100)|percent %}
-      <div class="lane-bar">
-        <span class="lane-fill {{ pct|chance_class }}" style="--v: {{ pct }}%"></span>
-        <span class="num">{{ pct }}%</span>
-        <span class="caption">{{ distance }} m</span>
-      </div>
-    {% endfor %}
-  </div>
+  <h2 class="panel-title">HIT CHANCE BY DISTANCE</h2>
+  <p class="muted">One medium dummy moved to each distance, first shot of a pull.</p>
+  {{ lane_chart(chances, 100, "%", coloured=True) }}
+</section>
+
+<section class="panel">
+  <h2 class="panel-title">DAMAGE BY DISTANCE</h2>
+  <p class="muted">What a hit does at each distance, before the 85-115% roll{% if weapon.pellets > 1 %}, counting the pellets that usually land{% endif %}.</p>
+  {{ lane_chart(damages, weapon.damage) }}
 </section>
 
 <section>
