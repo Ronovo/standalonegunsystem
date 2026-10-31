@@ -1,14 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="range">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Main Menu{% endblock %} · Stand Alone Gun System</title>
   <link rel="icon" href="{{ url_for('static', filename='img/logo.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
 </head>
 <body>
+  <div class="backdrop" aria-hidden="true"></div>
   <header class="topbar">
     <a class="brand" href="{{ url_for('main.menu') }}">
       <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="" width="26" height="26">
@@ -16,6 +19,7 @@
     </a>
     <div class="topbar-actions">
       {% block back %}{% endblock %}
+      {% include "_theme_picker.html" %}
       {% if portfolio %}
         {% if session.portfolio_user %}
         <form method="post" action="{{ url_for('logout') }}"><button class="back">{{ session.portfolio_user }}: Log out</button></form>
@@ -27,15 +31,11 @@
     </div>
   </header>
   <main class="screen">
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="flash" role="status">
-          {% for message in messages %}<p>&gt; {{ message }}</p>{% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
     {% block content %}{% endblock %}
   </main>
+  <div id="toasts" class="toasts" role="status" aria-live="polite">
+    {% for message in get_flashed_messages() %}<div class="toast">{{ message }}</div>{% endfor %}
+  </div>
   <footer class="keys">Keyboard: <kbd>1</kbd>-<kbd>9</kbd> pick a menu item · <kbd>Esc</kbd> go back</footer>
 </body>
 </html>

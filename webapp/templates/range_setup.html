@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import back_link, distance_select, weapon_radios %}
+{% from "_macros.html" import back_link, distance_radios, weapon_radios %}
 {% block title %}{{ "Switch Weapons" if switching else "Range Setup" }}{% endblock %}
 {% block back %}
   {% if switching %}{{ back_link(url_for('main.range_view'), "Back to range") }}{% else %}{{ back_link(url_for('main.menu'), "Main menu") }}{% endif %}
@@ -24,10 +24,10 @@
         </label>
       {% endfor %}
     </div>
-    <label class="inline-field">Distance {{ distance_select(ranges, distance) }}</label>
+    <fieldset class="radio-group"><legend>Distance</legend>{{ distance_radios(ranges, distance) }}</fieldset>
   </section>
   {% endif %}
 
-  <button class="menu-item primary" data-key="1"><span class="key">1.)</span><span class="label">{{ "Switch" if switching else "Enter the range" }}</span></button>
+  <button class="menu-item primary" data-key="1"><span class="key">1</span><span class="label">{{ "Switch" if switching else "Enter the range" }}</span></button>
 </form>
 {% endblock %}

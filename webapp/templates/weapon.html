@@ -1,29 +1,48 @@
 {% extends "base.html" %}
-{% from "_macros.html" import back_link, class_icon, menu_link %}
+{% from "_macros.html" import back_link, class_icon, menu_card, meter %}
 {% block title %}{{ weapon.name }}{% endblock %}
 {% block back %}{{ back_link(url_for('main.armory_category', category=weapon.weapon_type.category), weapon.weapon_type.category) }}{% endblock %}
 {% block content %}
 <section class="panel sheet">
   <div class="sheet-art">{{ class_icon(weapon.weapon_type.class_name, "lg") }}</div>
   <div class="sheet-body">
-    <h1>{{ weapon.name }}</h1>
-    <p class="muted">{{ weapon.weapon_type.class_name }} · {{ weapon.weapon_type.category }}</p>
-    <table class="stats">
-      <tr><th>Damage</th><td class="bar">{{ weapon.damage|bar(stat_max.damage) }}</td><td>{{ weapon.damage }}</td></tr>
-      <tr><th>Accuracy</th><td class="bar">{{ weapon.base_accuracy|bar(stat_max.base_accuracy) }}</td><td>{{ weapon.base_accuracy }}</td></tr>
-      <tr><th>Base range</th><td class="bar">{{ weapon.range_m|bar(stat_max.range) }}</td><td>{{ weapon.range_m }} m</td></tr>
-      <tr><th>Max range</th><td class="bar">{{ weapon.max_range|bar(stat_max.range) }}</td><td>{{ weapon.max_range }} m</td></tr>
-      <tr><th>Max ammo</th><td class="bar">{{ weapon.max_ammo|bar(stat_max.max_ammo) }}</td><td>{{ weapon.max_ammo }}</td></tr>
-    </table>
-    <p><span class="caption">Fire modes</span> {{ weapon.fire_mode_names() }}</p>
-    <p><span class="caption">Reload</span> {{ reload_note }}</p>
+    <p class="eyebrow">{{ weapon.weapon_type.class_name }} · {{ weapon.weapon_type.category }}</p>
+    <h1 class="display">{{ weapon.name }}</h1>
+    <dl class="stat-list">
+      <div><dt>Damage</dt><dd>{{ meter(weapon.damage, stat_max.damage) }}<span class="num">{{ weapon.damage }}</span></dd></div>
+      <div><dt>Accuracy</dt><dd>{{ meter(weapon.base_accuracy, stat_max.base_accuracy) }}<span class="num">{{ weapon.base_accuracy }}</span></dd></div>
+      <div><dt>Base range</dt><dd>{{ meter(weapon.range_m, stat_max.range) }}<span class="num">{{ weapon.range_m }} m</span></dd></div>
+      <div><dt>Max range</dt><dd>{{ meter(weapon.max_range, stat_max.range) }}<span class="num">{{ weapon.max_range }} m</span></dd></div>
+      <div><dt>Max ammo</dt><dd>{{ meter(weapon.max_ammo, stat_max.max_ammo) }}<span class="num">{{ weapon.max_ammo }}</span></dd></div>
+      <div><dt>Rate of fire</dt><dd>{{ meter(weapon.rpm, stat_max.rpm) }}<span class="num">{{ weapon.rpm }} rpm</span></dd></div>
+    </dl>
+    <div class="facts">
+      <p><span class="caption">Fire modes</span>{{ weapon.fire_mode_names() }}</p>
+      <p><span class="caption">Reload</span>{{ weapon.reload_style.note }} {{ weapon.reload_label }}</p>
+      {% if weapon.pellets > 1 %}<p><span class="caption">Pellets</span>{{ weapon.pellets }} per shell</p>{% endif %}
+    </div>
   </div>
 </section>
 
 <section class="panel">
-  <ol class="menu">
-    {{ menu_link(1, url_for('main.range_setup', weapon=weapon.name), "Take it to the range") }}
-    {{ menu_link(2, url_for('main.bulk_form', name=weapon.name), "Run a bulk fire report") }}
+  <h2 class="panel-title">HIT CHANCE BY LANE</h2>
+  <p class="muted">Medium dummy, first shot of a pull.</p>
+  <div class="lane-chart">
+    {% for distance, chance in lane_chances %}
+      {% set pct = (chance * 100)|percent %}
+      <div class="lane-bar">
+        <span class="lane-fill {{ pct|chance_class }}" style="--v: {{ pct }}%"></span>
+        <span class="num">{{ pct }}%</span>
+        <span class="caption">{{ distance }} m</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <ol class="cards menu-grid">
+    {{ menu_card(1, url_for('main.range_setup', weapon=weapon.name), "Take it to the range", "Load up and fire at a dummy", "sniper") }}
+    {{ menu_card(2, url_for('main.bulk_form', name=weapon.name), "Run a bulk fire report", "Empty magazine after magazine", "lmg") }}
   </ol>
 </section>
 {% endblock %}

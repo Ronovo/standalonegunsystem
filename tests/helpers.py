@@ -11,7 +11,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from flask import Flask
 
+from gunsystem import combat
 from webapp import create_app
+
+NO_PORTFOLIO = {"PORTFOLIO_SSO_URL": "", "PORTFOLIO_SSO_PUBLIC_KEY": ""}
 
 KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 PUBLIC_KEY = base64.b64encode(KEY.public_key().public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)).decode()
@@ -28,11 +31,23 @@ def make_app(test: unittest.TestCase, portfolio: bool = False) -> Flask:
     running the tests has set."""
     data_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     test.addCleanup(data_dir.cleanup)
-    env = mock.patch.dict(os.environ, {"PORTFOLIO_SSO_URL": "http://portfolio.test" if portfolio else "",
-                                       "PORTFOLIO_SSO_PUBLIC_KEY": PUBLIC_KEY if portfolio else ""})
+    env = mock.patch.dict(os.environ, {"PORTFOLIO_SSO_URL": "http://portfolio.test",
+                                       "PORTFOLIO_SSO_PUBLIC_KEY": PUBLIC_KEY} if portfolio else NO_PORTFOLIO)
     env.start()
     test.addCleanup(env.stop)
     return create_app({"TESTING": True, "SECRET_KEY": "test", "DATA_DIR": data_dir.name})
+
+
+def rolls(hit: bool = True, critical: bool = False):
+    """Fixes the combat rolls: every shot hits or misses, does its base damage, and is or isn't a critical."""
+    def randint(low, high):
+        if (low, high) == combat.DAMAGE_SPREAD:
+            return 100
+        if high == 100:
+            return low if hit else high
+        return low if critical else high
+
+    return mock.patch.object(combat._RNG, "randint", side_effect=randint)
 
 
 def log_in(client, sub="1", token=None):

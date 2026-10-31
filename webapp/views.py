@@ -2,10 +2,23 @@ import threading
 import time
 from collections import OrderedDict
 from functools import wraps
+from pathlib import Path
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 
-from gunsystem import Catalog, FireMode, ReloadStyle, Weapon
+from gunsystem import Catalog, Target, Weapon, hit_chance
 from gunsystem.dummy import RANGES, Dummy, size_code
 from gunsystem.simulation import (
     MAGAZINES_PER_RANGE,
@@ -18,6 +31,7 @@ from gunsystem.simulation import (
     write_report,
 )
 from gunsystem.target import SIZES
+from gunsystem.util import to_int
 from webapp.range_session import RangeSession
 
 bp = Blueprint("main", __name__)
@@ -26,12 +40,8 @@ RESULTS_PER_PAGE = 50
 # Balance results are kept for this many accounts, dropping the one that ran a report longest ago.
 MAX_BALANCE_RESULTS = 20
 BALANCE_METRICS = {"accuracy": "Accuracy", "destroyed": "Dummies destroyed", "damage": "Damage"}
-RELOAD_NOTES = {
-    ReloadStyle.MAGAZINE: "Magazine fed: reloads in one go.",
-    ReloadStyle.SHELL: "Tube fed: shells are loaded one at a time.",
-    ReloadStyle.REVOLVER: "Revolver: empty the cylinder, then load rounds one at a time.",
-}
-FIRE_LABELS = {FireMode.SINGLE: "a shot", FireMode.BURST: "a 3 round burst", FireMode.AUTO: "a string"}
+THEMES = {"range": "Range", "hud": "HUD", "cyberpunk": "Cyberpunk", "dark": "Dark", "light": "Light"}
+COVERAGE_DIR = Path(__file__).resolve().parent.parent / "coverage"
 # A balance run takes a few seconds of CPU, so only one runs at a time.
 _balance_lock = threading.Lock()
 
@@ -43,34 +53,38 @@ def _stat_max() -> dict[str, int]:
         "base_accuracy": 100,
         "range": max(w.max_range for w in weapons),
         "max_ammo": max(w.max_ammo for w in weapons),
+        "rpm": max(w.rpm for w in weapons),
     }
 
 
 STAT_MAX = _stat_max()
 
 
-@bp.app_template_filter("bar")
-def text_bar(value: int, maximum: int, width: int = 20) -> str:
-    filled = round(max(0, min(value, maximum)) / maximum * width) if maximum else 0
-    return "█" * filled + "░" * (width - filled)
+@bp.app_context_processor
+def inject_globals():
+    return {"themes": THEMES, "stat_max": STAT_MAX}
 
 
-@bp.app_template_filter("accuracy_class")
-def accuracy_class(result: MagazineResult) -> str:
-    if result.hits == 0:
+@bp.app_template_filter("percent")
+def percent(value: float, maximum: float = 100) -> int:
+    """value as a whole percentage of maximum, kept between 0 and 100 for meter widths."""
+    return round(max(0, min(value, maximum)) / maximum * 100) if maximum else 0
+
+
+@bp.app_template_filter("chance_class")
+def chance_class(percent: float) -> str:
+    if percent <= 0:
         return "acc-zero"
-    if result.accuracy < 50:
+    if percent < 50:
         return "acc-low"
-    if result.accuracy < 80:
+    if percent < 80:
         return "acc-mid"
     return "acc-high"
 
 
-def _int(value, default: int | None) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
+@bp.app_template_filter("accuracy_class")
+def accuracy_class(result: MagazineResult) -> str:
+    return chance_class(result.accuracy)
 
 
 def _weapon_or_404(name: str) -> Weapon:
@@ -111,24 +125,28 @@ def _balance_args() -> dict:
 
 
 def _distance(value) -> int:
-    distance = _int(value, RANGES[0])
+    distance = to_int(value, RANGES[0])
     return distance if distance in RANGES else RANGES[0]
 
 
-def _dummy_height(dummy: Dummy) -> int:
-    far = (dummy.distance - RANGES[0]) / (RANGES[-1] - RANGES[0])
-    return round(SIZES[dummy.size].height * (1 - 0.55 * far))
+def _wants_json() -> bool:
+    return request.accept_mimetypes.best == "application/json"
 
 
 @bp.get("/")
 def menu():
-    return render_template("menu.html", destroyed=session.get("destroyed", 0))
+    return render_template(
+        "menu.html",
+        destroyed=session.get("destroyed", 0),
+        gun_count=len(Catalog.names()),
+        class_count=len(Catalog.by_class()),
+    )
 
 
 @bp.get("/armory")
 def armory():
     categories = [
-        (category, [f"{name} ({len(weapons)})" for name, weapons in Catalog.by_class(category).items()])
+        (category, [(name, len(weapons)) for name, weapons in Catalog.by_class(category).items()])
         for category in Catalog.CATEGORIES
     ]
     return render_template("armory.html", categories=categories)
@@ -145,19 +163,50 @@ def armory_category(category: str):
 def weapon_detail(name: str):
     weapon = _weapon_or_404(name)
     return render_template(
-        "weapon.html", weapon=weapon, stat_max=STAT_MAX, reload_note=RELOAD_NOTES[weapon.reload_style]
+        "weapon.html",
+        weapon=weapon,
+        lane_chances=[(distance, hit_chance(weapon, Target(distance))) for distance in RANGES],
     )
 
 
+def _range_context(rs: RangeSession) -> dict:
+    step = rs.reload_step()
+    return {
+        "rs": rs,
+        "weapon": rs.weapon,
+        "dummy": rs.dummy,
+        "dummy_height": rs.dummy_height(),
+        "dummy_far": rs.dummy_far(),
+        "reload_label": step.label if step else None,
+        "hit_chance": rs.hit_chance(),
+        "log": rs.state["log"],
+        "destroyed": session.get("destroyed", 0),
+        "sizes": SIZES,
+        "ranges": RANGES,
+    }
+
+
+def _to_setup():
+    """Where to send a browser with no range: a redirect, or the address for the live range page to follow."""
+    if _wants_json():
+        return jsonify(redirect=url_for(".range_setup"))
+    return redirect(url_for(".range_setup"))
+
+
 def range_action(view):
+    """Runs a range action, then answers with the page again, or with the new panels and state for the live
+    range when the request asks for JSON."""
 
     @wraps(view)
     def wrapper():
         range_session = RangeSession.load()
         if range_session is None:
-            return redirect(url_for(".range_setup"))
+            return _to_setup()
         message = view(range_session)
         range_session.save()
+        if _wants_json():
+            html = render_template("_range_panels.html", **_range_context(range_session))
+            return jsonify(html=html, state=range_session.to_dict(), message=message)
         if message:
             flash(message)
         return redirect(url_for(".range_view"))
@@ -170,21 +219,15 @@ def range_view():
     range_session = RangeSession.load()
     if range_session is None:
         return redirect(url_for(".range_setup"))
-    step = range_session.reload_step()
-    return render_template(
-        "range.html",
-        rs=range_session,
-        weapon=range_session.weapon,
-        dummy=range_session.dummy,
-        dummy_height=_dummy_height(range_session.dummy),
-        fire_label=FIRE_LABELS[range_session.fire_mode],
-        reload_label=step.label if step else None,
-        reload_note=RELOAD_NOTES[range_session.weapon.reload_style],
-        log=range_session.state["log"],
-        destroyed=session.get("destroyed", 0),
-        sizes=SIZES,
-        ranges=RANGES,
-    )
+    return render_template("range.html", **_range_context(range_session), state=range_session.to_dict())
+
+
+@bp.get("/range/state")
+def range_state():
+    range_session = RangeSession.load()
+    if range_session is None:
+        return _to_setup()
+    return jsonify(range_session.to_dict())
 
 
 @bp.route("/range/setup", methods=["GET", "POST"])
@@ -227,7 +270,7 @@ def range_weapon():
 @bp.post("/range/fire")
 @range_action
 def range_fire(rs: RangeSession):
-    return rs.fire(_int(request.form.get("rounds"), 1))
+    return rs.fire(to_int(request.form.get("rounds"), 1))
 
 
 @bp.post("/range/mode")
@@ -278,7 +321,7 @@ def bulk_form(name: str):
     args = request.args
     modes = {mode.value: mode for mode in weapon.fire_modes}
     values = {
-        "shots": min(max(_int(args.get("shots"), weapon.max_ammo), 1), MAX_BULK_SHOTS),
+        "shots": min(max(to_int(args.get("shots"), weapon.max_ammo), 1), MAX_BULK_SHOTS),
         "size": size_code(args.get("size")),
         "distance": _distance(args.get("distance")),
         "mode": modes.get(args.get("mode"), weapon.fire_modes[0]),
@@ -368,7 +411,7 @@ def _balance_report(write_files: bool) -> dict:
 def balance_results():
     report = _stored_balance()
     args = request.args
-    distance = _int(args.get("range"), None)
+    distance = to_int(args.get("range"), None)
     filters = {
         "weapon": args.get("weapon") if args.get("weapon") in Catalog.names() else None,
         "range": distance if distance in RANGES else None,
@@ -386,7 +429,7 @@ def balance_results():
 
     with_hits = [e for e in entries if e["total"].hits]
     pages = max(1, -(-len(entries) // RESULTS_PER_PAGE))
-    page = min(max(_int(args.get("page"), 1), 1), pages)
+    page = min(max(to_int(args.get("page"), 1), 1), pages)
     start = (page - 1) * RESULTS_PER_PAGE
     return render_template(
         "balance_results.html",
@@ -406,3 +449,11 @@ def balance_results():
         ranges=RANGES,
         magazines=MAGAZINES_PER_RANGE,
     )
+
+
+@bp.get("/coverage/", defaults={"path": ""})
+@bp.get("/coverage/<path:path>")
+def coverage(path: str):
+    if not path or path.endswith("/"):
+        path += "index.html"
+    return send_from_directory(COVERAGE_DIR, path)

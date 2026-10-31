@@ -21,6 +21,14 @@ class ReloadStyle(Enum):
     SHELL = "shell"
     REVOLVER = "revolver"
 
+    @property
+    def note(self) -> str:
+        return {
+            ReloadStyle.MAGAZINE: "Magazine fed: reloads in one go.",
+            ReloadStyle.SHELL: "Tube fed: shells are loaded one at a time.",
+            ReloadStyle.REVOLVER: "Revolver: empty the cylinder, then load rounds one at a time.",
+        }[self]
+
 
 class ReloadStep(Enum):
     EMPTY = "empty"
@@ -49,6 +57,10 @@ class WeaponType:
     # Added to the to-hit roll per 50m inside effective range; negative is a bonus.
     close_range_step: int = -5
     max_close_steps: int = 3
+    # Scales how much a long string widens the spray; below 1 is easier to hold on target.
+    spray_control: float = 1.0
+    # Percent of hits that are critical.
+    crit_chance: int = 2
 
 
 class Weapon:
@@ -62,7 +74,10 @@ class Weapon:
         base_accuracy: int,
         weapon_type: WeaponType,
         fire_modes: tuple[FireMode, ...],
+        rpm: int,
+        reload_seconds: float,
         reload_style: ReloadStyle = ReloadStyle.MAGAZINE,
+        pellets: int = 1,
     ):
         self.name = name
         self.max_ammo = max_ammo
@@ -73,7 +88,28 @@ class Weapon:
         self.base_accuracy = base_accuracy
         self.weapon_type = weapon_type
         self.fire_modes = fire_modes
+        self.rpm = rpm
+        self.reload_seconds = reload_seconds
         self.reload_style = reload_style
+        self.pellets = pellets
+
+    @property
+    def rounds_per_pull(self) -> int:
+        """Rounds one second on the trigger fires on full auto."""
+        return max(1, round(self.rpm / 60))
+
+    @property
+    def full_reload_seconds(self) -> float:
+        if self.reload_style is ReloadStyle.MAGAZINE:
+            return self.reload_seconds
+        return self.reload_seconds * self.max_ammo
+
+    @property
+    def reload_label(self) -> str:
+        if self.reload_style is ReloadStyle.MAGAZINE:
+            return f"{self.reload_seconds:g} s"
+        each = "shell" if self.reload_style is ReloadStyle.SHELL else "round"
+        return f"{self.reload_seconds:g} s per {each} ({self.full_reload_seconds:g} s from empty)"
 
     def reload(self) -> None:
         self.current_ammo = self.max_ammo
@@ -120,11 +156,14 @@ class Weapon:
     def describe(self, include_ammo: bool = False) -> str:
         lines = [
             f"Max Ammo: {self.max_ammo} | Damage: {self.damage}",
-            f"Base Range(In Meters): {self.range_m} | Base Accuracy: {self.base_accuracy}",
+            f"Base Range (In Meters): {self.range_m} | Base Accuracy: {self.base_accuracy}",
             f"Max Range (In Meters): {self.max_range}",
+            f"Rate of Fire: {self.rpm} rpm | Reload: {self.reload_label}",
             f"Class: {self.weapon_type.class_name} | Weapon Type: {self.weapon_type.category}",
             f"Fire Modes : {self.fire_mode_names()}",
         ]
+        if self.pellets > 1:
+            lines.append(f"Pellets Per Shell: {self.pellets}")
         if include_ammo:
             lines.append(f"Current Ammo : {self.current_ammo}")
         return "\n".join(lines)

@@ -1,8 +1,16 @@
-{% macro menu_link(key, href, label, hint="") -%}
+{% macro class_icon(class_name, size="sm") -%}
+<span class="gun gun-{{ size }}" aria-hidden="true">{% include "svg/" ~ class_name|lower ~ ".svg" %}</span>
+{%- endmacro %}
+
+{% macro menu_card(key, href, label, hint="", icon=None) -%}
 <li>
-  <a class="menu-item" href="{{ href }}" data-key="{{ key }}">
-    <span class="key">{{ key }}.)</span><span class="label">{{ label }}</span>
-    {%- if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+  <a class="card menu-item" href="{{ href }}" data-key="{{ key }}">
+    <span class="key">{{ key }}</span>
+    {%- if icon %}{{ class_icon(icon, "sm") }}{% endif %}
+    <span class="card-body">
+      <span class="label">{{ label }}</span>
+      {%- if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+    </span>
   </a>
 </li>
 {%- endmacro %}
@@ -11,20 +19,40 @@
 <a class="back" href="{{ href }}" data-back>&#9666; {{ label }}</a>
 {%- endmacro %}
 
-{% macro class_icon(class_name, size="sm") -%}
-<span class="gun gun-{{ size }}" aria-hidden="true">{% include "svg/" ~ class_name|lower ~ ".svg" %}</span>
+{% macro meter(value, maximum, cls="") -%}
+<span class="meter {{ cls }}"><span class="meter-fill" style="width: {{ value|percent(maximum) }}%"></span></span>
 {%- endmacro %}
 
-{% macro weapon_menu(groups, endpoint) -%}
+{% macro ammo_display(weapon) -%}
+{% if weapon.max_ammo <= 30 -%}
+<span class="pips" data-bind="pips">{% for i in range(weapon.max_ammo) %}<i{% if i < weapon.current_ammo %} class="on"{% endif %}></i>{% endfor %}</span>
+{%- else -%}
+{{ meter(weapon.current_ammo, weapon.max_ammo, "ammo") }}
+{%- endif %}
+{%- endmacro %}
+
+{% macro weapon_cards(groups, endpoint) -%}
 {% set counter = namespace(n=0) %}
 {% for class_name, weapons in groups.items() %}
 <section class="weapon-group">
-  <h2 class="group-title">{{ class_icon(class_name) }}<span>{{ class_name }}</span></h2>
-  <ol class="menu">
+  <h2 class="group-title">{{ class_icon(class_name) }}<span>{{ class_name }}</span><span class="count">{{ weapons|length }}</span></h2>
+  <ol class="cards">
     {% for weapon in weapons %}
       {% set counter.n = counter.n + 1 %}
-      {{ menu_link(counter.n, url_for(endpoint, name=weapon.name), weapon.name,
-                   "DMG %d · ACC %d · %d rds"|format(weapon.damage, weapon.base_accuracy, weapon.max_ammo)) }}
+      <li>
+        <a class="card weapon-card menu-item" href="{{ url_for(endpoint, name=weapon.name) }}" data-key="{{ counter.n }}">
+          <span class="key">{{ counter.n }}</span>
+          <span class="card-body">
+            <span class="label">{{ weapon.name }}</span>
+            <span class="mini-stats">
+              <span><span class="caption">DMG</span>{{ meter(weapon.damage, stat_max.damage) }}<span class="num">{{ weapon.damage }}</span></span>
+              <span><span class="caption">ACC</span>{{ meter(weapon.base_accuracy, stat_max.base_accuracy) }}<span class="num">{{ weapon.base_accuracy }}</span></span>
+              <span><span class="caption">RNG</span>{{ meter(weapon.max_range, stat_max.range) }}<span class="num">{{ weapon.max_range }} m</span></span>
+            </span>
+            <span class="hint">{{ weapon.max_ammo }} rds · {{ weapon.fire_mode_names() }}</span>
+          </span>
+        </a>
+      </li>
     {% endfor %}
   </ol>
 </section>
@@ -54,10 +82,11 @@
 {% endfor %}
 {%- endmacro %}
 
-{% macro distance_select(ranges, selected) -%}
-<select name="distance">
-  {% for distance in ranges %}
-    <option value="{{ distance }}" {% if distance == selected %}selected{% endif %}>{{ distance }} m</option>
-  {% endfor %}
-</select>
+{% macro distance_radios(ranges, selected) -%}
+{% for distance in ranges %}
+  <label class="chip">
+    <input type="radio" name="distance" value="{{ distance }}" {% if distance == selected %}checked{% endif %}>
+    {{ distance }} m
+  </label>
+{% endfor %}
 {%- endmacro %}

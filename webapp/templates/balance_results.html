@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import back_link, menu_link %}
+{% from "_macros.html" import back_link, menu_card, meter %}
 {% block title %}Report Results{% endblock %}
 {% block back %}{{ back_link(url_for('main.balance'), "Balance report") }}{% endblock %}
 {% block content %}
@@ -7,14 +7,14 @@
 <section class="panel">
   <h1 class="panel-title">REPORT RESULTS</h1>
   <p>No balance report has been run yet.</p>
-  <ol class="menu">{{ menu_link(1, url_for('main.balance'), "Go to the balance report") }}</ol>
+  <ol class="cards menu-grid">{{ menu_card(1, url_for('main.balance'), "Go to the balance report", "", "assault") }}</ol>
 </section>
 {% else %}
 <form method="get" class="panel">
   <h1 class="panel-title">REPORT RESULTS</h1>
   <p class="muted">Balance run finished at {{ run.finished }} · {{ magazines }} magazines per range.</p>
   <div class="filters">
-    <label class="inline-field"><span class="key">1.)</span> Weapon
+    <label class="inline-field"><span class="key">1</span> Weapon
       <select name="weapon" data-key="1" data-focus>
         <option value="">All weapons</option>
         {% for class_name, weapons in groups.items() %}
@@ -26,7 +26,7 @@
         {% endfor %}
       </select>
     </label>
-    <label class="inline-field"><span class="key">2.)</span> Range
+    <label class="inline-field"><span class="key">2</span> Range
       <select name="range" data-key="2" data-focus>
         <option value="">All ranges</option>
         {% for distance in ranges %}
@@ -34,7 +34,7 @@
         {% endfor %}
       </select>
     </label>
-    <label class="inline-field"><span class="key">3.)</span> Dummy
+    <label class="inline-field"><span class="key">3</span> Dummy
       <select name="size" data-key="3" data-focus>
         <option value="">All sizes</option>
         {% for code, option in sizes.items() %}
@@ -42,7 +42,7 @@
         {% endfor %}
       </select>
     </label>
-    <button class="chip active" data-key="4">4.) Apply</button>
+    <button class="chip active" data-key="4">4 · Apply</button>
     <a class="chip" href="{{ url_for('main.balance_results') }}">Clear</a>
   </div>
 </form>
@@ -58,12 +58,12 @@
       <div class="tile"><span class="caption">Dummies destroyed</span><strong>{{ summary.destroyed }}</strong></div>
       <div class="tile"><span class="caption">Damage</span><strong>{{ summary.damage }}</strong></div>
     </div>
-    <p class="meter">{{ summary.accuracy|round|int|bar(100, 40) }}</p>
+    {{ meter(summary.accuracy, 100, "wide " ~ (summary|accuracy_class)) }}
     {% if best %}
       <p><span class="caption">Best</span>{{ best.weapon }} ({{ best.mode }}) vs {{ sizes[best.size].label|lower }} dummy at {{ best.distance }} m: <span class="{{ best.total|accuracy_class }}">{{ best.total.accuracy }}%</span></p>
       <p><span class="caption">Worst</span>{{ worst.weapon }} ({{ worst.mode }}) vs {{ sizes[worst.size].label|lower }} dummy at {{ worst.distance }} m: <span class="{{ worst.total|accuracy_class }}">{{ worst.total.accuracy }}%</span></p>
     {% endif %}
-    {% if no_hits %}<p class="muted">{{ no_hits }} result{{ "s" if no_hits != 1 }} landed no hits (out of range or zero damage) and are left out of best/worst.</p>{% endif %}
+    {% if no_hits %}<p class="muted">{{ no_hits }} result{{ "s" if no_hits != 1 }} landed no hits (out of range) and are left out of best/worst.</p>{% endif %}
   {% else %}
     <p class="muted">No results match these filters.</p>
   {% endif %}
@@ -80,7 +80,7 @@
   {% for entry in page_entries %}
     {% set total = entry.total %}
     {% set mag_accuracy = entry.magazines|map(attribute="accuracy")|list %}
-    <details class="result">
+    <details class="result" style="--i: {{ loop.index0 }}">
       <summary class="result-grid">
         <span>{{ entry.weapon }}</span>
         <span class="muted">{{ entry.mode }}</span>
@@ -102,7 +102,7 @@
               <tr>
                 <td>{{ loop.index }}</td>
                 <td class="num">{{ magazine.hits }}/{{ magazine.shots }}</td>
-                <td class="meter {{ magazine|accuracy_class }}">{{ magazine.accuracy|round|int|bar(100) }}</td>
+                <td class="meter-cell">{{ meter(magazine.accuracy, 100, magazine|accuracy_class) }}</td>
                 <td class="num {{ magazine|accuracy_class }}">{{ magazine.accuracy }}%</td>
                 <td class="num">{{ magazine.crits }}</td>
                 <td class="num">{{ magazine.destroyed }}</td>

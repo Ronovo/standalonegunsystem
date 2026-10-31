@@ -1,5 +1,7 @@
 import os
 
+from gunsystem.util import to_int
+
 
 def clear():
     os.system("cls" if os.name == "nt" else "clear")
@@ -15,10 +17,7 @@ def choose(options: list[str], back: str | None = None, invalid: str = "Incorrec
         last = len(options) + (1 if back else 0)
         if back:
             print(f"{last}.) {back}")
-        try:
-            choice = int(input(f"Pick 1-{last}\n"))
-        except ValueError:
-            choice = 0
+        choice = to_int(input(f"Pick 1-{last}\n"), 0)
         if 1 <= choice <= len(options):
             return choice - 1
         if back and choice == last:

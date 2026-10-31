@@ -1,9 +1,15 @@
+import os
+import runpy
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from gunsystem import Catalog
+from gunsystem.dummy import RANGES
 from gunsystem.simulation import MAX_BULK_SHOTS, balance_runs
-from tests.helpers import make_app
+from tests.helpers import NO_PORTFOLIO, make_app, rolls
+from webapp import create_app, views
 
 
 class WebAppTests(unittest.TestCase):
@@ -57,6 +63,68 @@ class WebAppTests(unittest.TestCase):
         self.assertIn("SHOOTING MENU", page)
         self.assertIn("Weapon is reloaded!", page)
 
+    def test_every_page_offers_the_themes(self):
+        for url in ("/", "/armory", "/range/setup", "/balance"):
+            page = self.client.get(url).get_data(as_text=True)
+            self.assertIn('<select data-theme-picker>', page, url)
+            self.assertIn('<option value="hud">HUD</option>', page, url)
+
+    def test_the_range_page_carries_its_state_for_live_fire(self):
+        self.enter_range(weapon="MP5", size="m", distance="100")
+        page = self.client.get("/range").get_data(as_text=True)
+        self.assertIn('data-range-mode="live"', page)
+        self.assertIn('data-live="fire"', page)
+        self.assertIn('<script type="application/json" id="range-state">', page)
+        self.assertIn('"pulls": 0', page)
+
+    def test_live_fire_answers_with_the_panels_and_state(self):
+        self.enter_range(weapon="W1200", size="m", distance="100")
+        with rolls(hit=True):
+            response = self.client.post("/range/fire", headers={"Accept": "application/json"})
+        data = response.get_json()
+        self.assertEqual(set(data), {"html", "state", "message"})
+        self.assertIsNone(data["message"])
+        self.assertIn("8 of 8 pellets", data["html"])
+        state = data["state"]
+        self.assertEqual((state["pulls"], state["weapon"]["ammo"], state["last_pull"]["pellets"]), (1, 6, 8))
+        self.assertEqual(state["dummy"]["health"], 125)
+        data = self.client.post("/range/reload", headers={"Accept": "application/json"}).get_json()
+        self.assertEqual(data["message"], "One shell loaded. 0 remaining.")
+        self.assertEqual(self.client.get("/range/state").get_json()["weapon"]["ammo"], 7)
+
+    def test_live_fire_is_sent_to_setup_without_a_range(self):
+        json = {"Accept": "application/json"}
+        self.assertEqual(self.client.post("/range/fire", headers=json).get_json(), {"redirect": "/range/setup"})
+        self.assertEqual(self.client.get("/range/state", headers=json).get_json(), {"redirect": "/range/setup"})
+        self.assertTrue(self.client.get("/range/state").location.endswith("/range/setup"))
+
+    def test_range_shows_the_hit_chance_for_the_lane(self):
+        self.enter_range(weapon="M1911", size="m", distance="100")
+        page = self.client.get("/range").get_data(as_text=True)
+        self.assertIn("80% first shot", page)
+        self.client.post("/range/distance", data={"distance": "300"})
+        self.assertIn("0% first shot", self.client.get("/range").get_data(as_text=True))
+
+    def test_a_shotgun_log_counts_pellets(self):
+        self.enter_range(weapon="W1200", size="l", distance="50")
+        with rolls(hit=True):
+            self.client.post("/range/fire")
+        page = self.client.get("/range").get_data(as_text=True)
+        self.assertIn("8 of 8 pellets.", page)
+        self.assertEqual(self.range_state()["log"][0]["shots"][0][2], 8)
+
+    def test_the_weapon_page_lists_hit_chance_per_lane(self):
+        page = self.client.get("/armory/weapon/M40A3").get_data(as_text=True)
+        self.assertIn("20 rpm", page)
+        self.assertIn("HIT CHANCE BY LANE", page)
+        self.assertEqual(page.count('<span class="caption">500 m</span>'), 1)
+
+    def test_auto_fire_defaults_to_one_second_of_fire(self):
+        self.enter_range(weapon="MP5")
+        self.assertEqual(self.range_state()["rounds"], 13)
+        self.client.post("/range/weapon", data={"weapon": "USAS-12"})
+        self.assertEqual(self.range_state()["rounds"], 5)
+
     def test_auto_fire_uses_requested_rounds(self):
         self.enter_range(weapon="M249 SAW", size="l", distance="500")
         self.client.post("/range/mode", data={"mode": "fa"})
@@ -101,10 +169,14 @@ class WebAppTests(unittest.TestCase):
         self.enter_range(weapon="Barrett .50Cal", size="s", distance="500")
         with self.client.session_transaction() as session:
             session["range"] = {**session["range"], "health": 1}
-        with mock.patch("random.Random.randint", return_value=1):
+        with rolls(hit=True):
             self.client.post("/range/fire")
         page = self.client.get("/range").get_data(as_text=True)
         self.assertIn("DUMMY DESTROYED", page)
+        with self.client.session_transaction() as session:
+            self.assertEqual(session["destroyed"], 1)
+        page = self.client.post("/range/fire", follow_redirects=True).get_data(as_text=True)
+        self.assertIn("The dummy is already destroyed. Set up a new one.", page)
         with self.client.session_transaction() as session:
             self.assertEqual(session["destroyed"], 1)
 
@@ -124,6 +196,65 @@ class WebAppTests(unittest.TestCase):
         with self.client.session_transaction() as session:
             self.assertNotIn("range", session)
 
+    def test_setup_defaults_to_a_medium_dummy_at_the_nearest_range(self):
+        page = self.client.get("/range/setup").get_data(as_text=True)
+        self.assertIn('value="m" checked', page)
+        self.assertIn(f'value="{RANGES[0]}" checked', page)
+        self.assertNotIn("required checked", page)
+
+    def test_setup_starts_from_the_current_range(self):
+        self.enter_range(weapon="M40A3", size="l", distance="300")
+        page = self.client.get("/range/setup").get_data(as_text=True)
+        self.assertIn('value="M40A3" required checked', page)
+        self.assertIn('value="l" checked', page)
+        self.assertIn('value="300" checked', page)
+        page = self.client.get("/range/setup", query_string={"weapon": "AK47"}).get_data(as_text=True)
+        self.assertIn('value="AK47" required checked', page)
+
+    def test_switching_weapons_needs_a_range(self):
+        self.assertTrue(self.client.get("/range/weapon").location.endswith("/range/setup"))
+        self.assertTrue(self.client.post("/range/weapon", data={"weapon": "AK47"}).location.endswith("/range/setup"))
+
+    def test_the_switch_page_marks_the_weapon_in_hand(self):
+        self.enter_range(weapon="G36")
+        page = self.client.get("/range/weapon").get_data(as_text=True)
+        self.assertIn("SWITCH WEAPONS", page)
+        self.assertIn('value="G36" required checked', page)
+        self.assertNotIn('name="size"', page)
+
+    def test_moving_the_dummy_keeps_it_in_a_lane(self):
+        self.enter_range()
+        page = self.client.post("/range/distance", data={"distance": "400"}, follow_redirects=True)
+        self.assertIn("Dummy has been set to range of 400", page.get_data(as_text=True))
+        self.assertEqual(self.range_state()["distance"], 400)
+        self.client.post("/range/distance", data={"distance": "450"})
+        self.assertIn(self.range_state()["distance"], RANGES)
+
+    def test_a_standing_dummy_is_not_replaced(self):
+        self.enter_range(size="s")
+        page = self.client.post("/range/dummy", data={"size": "l"}, follow_redirects=True)
+        self.assertIn("Finish off the current dummy first.", page.get_data(as_text=True))
+        self.assertEqual(self.range_state()["size"], "s")
+
+    def test_an_unknown_fire_mode_is_rejected(self):
+        self.enter_range(weapon="AK47")
+        page = self.client.post("/range/mode", data={"mode": "laser"}, follow_redirects=True)
+        self.assertIn("That fire mode is not available on this weapon.", page.get_data(as_text=True))
+        self.assertEqual(self.range_state()["mode"], "s")
+
+    def test_an_empty_weapon_does_not_fire(self):
+        self.enter_range()
+        with self.client.session_transaction() as session:
+            session["range"] = {**session["range"], "ammo": 0}
+        page = self.client.post("/range/fire", follow_redirects=True)
+        self.assertIn("Out of Ammo! Try Reloading.", page.get_data(as_text=True))
+        self.assertEqual(self.range_state()["log"], [])
+
+    def test_a_full_weapon_is_not_reloaded(self):
+        self.enter_range()
+        page = self.client.post("/range/reload", follow_redirects=True)
+        self.assertIn("Ammo already full. No need to reload.", page.get_data(as_text=True))
+
     def test_bulk_report(self):
         response = self.client.get("/bulk/MP5", query_string={"shots": 65, "size": "m", "distance": 100, "mode": "fa"})
         page = response.get_data(as_text=True)
@@ -134,6 +265,11 @@ class WebAppTests(unittest.TestCase):
     def test_bulk_report_is_capped(self):
         page = self.client.get("/bulk/MP5", query_string={"shots": 10 ** 9}).get_data(as_text=True)
         self.assertIn(f"<th>{MAX_BULK_SHOTS}</th>", page)
+
+    def test_bulk_form_offers_a_magazine_before_firing(self):
+        page = self.client.get("/bulk/MP5").get_data(as_text=True)
+        self.assertIn(f'name="shots" min="1" max="{MAX_BULK_SHOTS}" value="30"', page)
+        self.assertNotIn("BREAKDOWN BY MAGAZINE", page)
 
     def test_balance_report_runs_and_filters(self):
         small_runs = lambda: balance_runs(magazines_per_range=1)
@@ -165,7 +301,7 @@ class WebAppTests(unittest.TestCase):
             "/balance/results", query_string={"weapon": "M40A3", "range": 500, "size": "s"}
         ).get_data(as_text=True)
         self.assertIn("RESULTS · 1-1 OF 1", page)
-        self.assertEqual(page.count('<details class="result">'), 1)
+        self.assertEqual(page.count('<details class="result"'), 1)
         self.assertEqual(page.count("<td>3</td>"), 1)
         self.assertNotIn("<td>4</td>", page)
 
@@ -173,11 +309,55 @@ class WebAppTests(unittest.TestCase):
         self.run_small_balance()
         page = self.client.get("/balance/results", query_string={"weapon": "Nope", "range": 7}).get_data(as_text=True)
         self.assertIn("OF 945", page)
-        self.assertEqual(page.count('<details class="result">'), 50)
+        self.assertEqual(page.count('<details class="result"'), 50)
         self.assertIn('href="/balance/results?page=2"', page)
         last = self.client.get("/balance/results", query_string={"page": 99}).get_data(as_text=True)
         self.assertIn("Page 19 of 19", last)
         self.assertIn("901-945 OF 945", last)
+
+    def test_the_coverage_reports_are_served_from_their_folder(self):
+        with tempfile.TemporaryDirectory() as folder:
+            reports = Path(folder) / "coverage"
+            (reports / "python").mkdir(parents=True)
+            (reports / "index.html").write_text("landing page", encoding="utf-8")
+            (reports / "python" / "index.html").write_text("python report", encoding="utf-8")
+            (Path(folder) / "secret.txt").write_text("secret", encoding="utf-8")
+
+            def get(path):
+                with self.client.get(path) as response:
+                    return response.status_code, response.data
+
+            with mock.patch.object(views, "COVERAGE_DIR", reports):
+                self.assertEqual(get("/coverage")[0], 308)
+                self.assertEqual(get("/coverage/"), (200, b"landing page"))
+                self.assertEqual(get("/coverage/python/"), (200, b"python report"))
+                for path in ("/coverage/js/", "/coverage/../secret.txt", "/coverage/%2e%2e/secret.txt"):
+                    self.assertEqual(get(path)[0], 404, path)
+
+
+class AppSettingsTests(unittest.TestCase):
+    def setUp(self):
+        env = mock.patch.dict(os.environ, NO_PORTFOLIO)
+        env.start()
+        self.addCleanup(env.stop)
+
+    def test_settings_come_from_the_environment(self):
+        settings = {"GUNSYSTEM_SECRET_KEY": "from the shell", "DATA_DIR": "elsewhere", "SECURE_COOKIES": "1"}
+        with mock.patch.dict(os.environ, settings):
+            app = create_app()
+        self.assertEqual((app.config["SECRET_KEY"], app.config["DATA_DIR"], app.config["SESSION_COOKIE_SECURE"]),
+                         ("from the shell", "elsewhere", True))
+
+    def test_without_settings_each_start_gets_its_own_key(self):
+        with mock.patch.dict(os.environ, {"GUNSYSTEM_SECRET_KEY": "", "SECURE_COOKIES": ""}):
+            first, second = create_app(), create_app()
+        self.assertNotEqual(first.config["SECRET_KEY"], second.config["SECRET_KEY"])
+        self.assertFalse(first.config["SESSION_COOKIE_SECURE"])
+
+    def test_python_dash_m_webapp_serves_the_app(self):
+        with mock.patch("flask.Flask.run") as run:
+            runpy.run_module("webapp", run_name="__main__")
+        run.assert_called_once_with()
 
 
 if __name__ == "__main__":

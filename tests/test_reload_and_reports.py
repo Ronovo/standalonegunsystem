@@ -20,6 +20,12 @@ class ReloadStepTests(unittest.TestCase):
         self.assertEqual(weapon.take_reload_step(ReloadStep.MAGAZINE), "Weapon is reloaded!")
         self.assertIsNone(weapon.next_reload_step())
 
+    def test_a_full_weapon_takes_no_more_rounds(self):
+        weapon = Catalog.create("W1200")
+        weapon.reload()
+        self.assertFalse(weapon.load_round())
+        self.assertEqual(weapon.current_ammo, weapon.max_ammo)
+
     def test_revolver_empties_then_loads_one_round_at_a_time(self):
         weapon = Catalog.create(".38 Special")
         weapon.current_ammo = 2
@@ -65,6 +71,14 @@ class RangeSessionTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.location.endswith("/range/setup"))
 
+    def test_a_fire_mode_the_weapon_lacks_starts_over(self):
+        with self.client.session_transaction() as session:
+            session["range"] = {**session["range"], "weapon": "M1911", "ammo": 7, "mode": FireMode.AUTO.value}
+        response = self.client.get("/range")
+        self.assertTrue(response.location.endswith("/range/setup"))
+        with self.client.session_transaction() as session:
+            self.assertNotIn("range", session)
+
     def test_rounds_per_pull_are_capped_at_the_magazine(self):
         with self.client.session_transaction() as session:
             session["range"] = {**session["range"], "mode": FireMode.AUTO.value}
@@ -104,6 +118,15 @@ class BalanceAccessTests(unittest.TestCase):
             page = client.post("/balance", data={"write_files": "on"}, follow_redirects=True).data
             self.assertTrue(os.path.exists(os.path.join(folder, "Sniper", "M40A3", "Small", "Single Shot.txt")))
         self.assertIn(b"Text reports saved to", page)
+
+    def test_results_are_dropped_for_the_account_that_ran_one_longest_ago(self):
+        clients = {sub: self.logged_in(sub) for sub in ("1", "2", "3")}
+        with mock.patch.object(views, "MAX_BALANCE_RESULTS", 2):
+            for sub in ("1", "2", "1", "3"):
+                clients[sub].post("/balance")
+        has_results = {sub: b"No balance report has been run yet." not in client.get("/balance/results").data
+                       for sub, client in clients.items()}
+        self.assertEqual(has_results, {"1": True, "2": False, "3": True})
 
     def test_only_one_run_at_a_time(self):
         client = self.logged_in("1")

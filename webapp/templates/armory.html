@@ -1,14 +1,23 @@
 {% extends "base.html" %}
-{% from "_macros.html" import menu_link, back_link %}
+{% from "_macros.html" import back_link, class_icon %}
 {% block title %}Armory{% endblock %}
 {% block back %}{{ back_link(url_for('main.menu'), "Main menu") }}{% endblock %}
 {% block content %}
 <section class="panel">
   <h1 class="panel-title">WELCOME TO THE ARMORY</h1>
   <p class="muted">Please select a weapon type:</p>
-  <ol class="menu">
+  <ol class="cards menu-grid">
     {% for category, classes in categories %}
-      {{ menu_link(loop.index, url_for('main.armory_category', category=category), category, classes|join(" · ")) }}
+      <li>
+        <a class="card menu-item" href="{{ url_for('main.armory_category', category=category) }}" data-key="{{ loop.index }}">
+          <span class="key">{{ loop.index }}</span>
+          <span class="card-body">
+            <span class="label">{{ category }}</span>
+            <span class="hint">{% for name, count in classes %}{{ name }} ({{ count }}){% if not loop.last %} · {% endif %}{% endfor %}</span>
+          </span>
+          <span class="icon-row">{% for name, count in classes %}{{ class_icon(name, "xs") }}{% endfor %}</span>
+        </a>
+      </li>
     {% endfor %}
   </ol>
 </section>

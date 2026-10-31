@@ -41,12 +41,9 @@ def interactive_reload(weapon: Weapon) -> bool:
     if step is None:
         print("Ammo already full. No need to reload")
         return False
-    if weapon.reload_style is ReloadStyle.SHELL:
-        print("Non-Automatic Shotguns need to be manually loaded.")
-        print("--------------------------------------------------")
-    elif weapon.reload_style is ReloadStyle.REVOLVER:
-        print("Revolvers unload when reloaded and must be manually loaded")
-        print("----------------------------------------------------------")
+    if weapon.reload_style is not ReloadStyle.MAGAZINE:
+        print(weapon.reload_style.note)
+        print("-" * len(weapon.reload_style.note))
     while step is not None:
         if step in (ReloadStep.SHELL, ReloadStep.ROUND):
             input(f"Press any button to load a {'shell' if step is ReloadStep.SHELL else 'bullet'}")

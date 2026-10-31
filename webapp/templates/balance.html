@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import back_link, class_icon, menu_link %}
+{% from "_macros.html" import back_link, class_icon, menu_card %}
 {% block title %}Balance Report{% endblock %}
 {% block back %}{{ back_link(url_for('main.menu'), "Main menu") }}{% endblock %}
 {% block content %}
@@ -8,7 +8,7 @@
   <p>This will fire {{ magazines }} magazines for every weapon and fire mode, at every dummy size and every range ({{ ranges|join(", ") }} m).</p>
   {% if can_run %}
   <form method="post" class="menu-row" data-busy="Running the report… this takes a few seconds">
-    <button class="menu-item primary" data-key="1"><span class="key">1.)</span><span class="label">{{ "Run it again" if run else "Run balance report" }}</span></button>
+    <button class="menu-item primary" data-key="1"><span class="key">1</span><span class="label">{{ "Run it again" if run else "Run balance report" }}</span></button>
     <label class="chip"><input type="checkbox" name="write_files"> Also save text reports to <code>{{ report_dir }}/</code></label>
   </form>
   {% else %}
@@ -16,8 +16,8 @@
   {% endif %}
   {% if run %}
     <p class="muted">Last run finished at {{ run.finished }} in {{ run.seconds }} s.</p>
-    <ol class="menu">
-      {{ menu_link(2, url_for('main.balance_results'), "View detailed results", "Summary, filters and accuracy per magazine") }}
+    <ol class="cards menu-grid">
+      {{ menu_card(2, url_for('main.balance_results'), "View detailed results", "Summary, filters and accuracy per magazine", "assault") }}
     </ol>
   {% endif %}
 </section>
@@ -35,7 +35,7 @@
     {% endfor %}
   </nav>
   <div class="table-wrap">
-    <table class="data balance">
+    <table class="data balance heatmap">
       <thead>
         <tr><th>Weapon</th><th>Mode</th>{% for distance in ranges %}<th class="num">{{ distance }} m</th>{% endfor %}</tr>
       </thead>
@@ -48,7 +48,7 @@
             <td>{{ row.weapon }}</td>
             <td class="muted">{{ row.mode }}</td>
             {% for cell in row.ranges|map(attribute="total") %}
-              <td class="num {{ cell|accuracy_class }}" title="{{ cell.hits }}/{{ cell.shots }} hits · {{ cell.destroyed }} destroyed · {{ cell.damage }} damage">
+              <td class="num heat {{ cell|accuracy_class }}" style="--v: {{ cell.accuracy|percent }}%" title="{{ cell.hits }}/{{ cell.shots }} hits · {{ cell.destroyed }} destroyed · {{ cell.damage }} damage">
                 {%- if metric == "accuracy" %}{{ "%.0f"|format(cell.accuracy) }}%{% else %}{{ cell[metric] }}{% endif -%}
               </td>
             {% endfor %}

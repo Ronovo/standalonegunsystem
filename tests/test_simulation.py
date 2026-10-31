@@ -5,7 +5,6 @@ import gunsystem.simulation
 from gunsystem import Catalog, FireMode, advance_string, resolve_shot
 from gunsystem.dummy import Dummy, size_code
 from gunsystem.simulation import (
-    AUTO_ROUNDS_PER_PULL,
     MAX_BULK_SHOTS,
     MagazineResult,
     plan_magazines,
@@ -81,7 +80,7 @@ class SprayStringTests(unittest.TestCase):
 
 class ReportFiringTests(unittest.TestCase):
     def test_full_auto_reports_restart_the_string_every_pull(self):
-        weapon = next(w for w in Catalog.all() if FireMode.AUTO in w.fire_modes and w.max_ammo > AUTO_ROUNDS_PER_PULL)
+        weapon = next(w for w in Catalog.all() if FireMode.AUTO in w.fire_modes and w.max_ammo > w.rounds_per_pull)
         weapon.reload()
         strings = []
 
@@ -92,7 +91,7 @@ class ReportFiringTests(unittest.TestCase):
         with mock.patch.object(gunsystem.simulation, "resolve_shot", recording_shot):
             run_magazines(weapon, 3, Dummy(), FireMode.AUTO)
         self.assertEqual(len(strings), 3 * weapon.max_ammo)
-        self.assertLessEqual(max(strings), AUTO_ROUNDS_PER_PULL)
+        self.assertLessEqual(max(strings), weapon.rounds_per_pull)
         self.assertGreater(max(strings), 1)
 
 

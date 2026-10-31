@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% from "_macros.html" import back_link, class_icon, distance_select, size_radios %}
+{% from "_macros.html" import back_link, class_icon, distance_radios, meter, size_radios %}
 {% block title %}Bulk · {{ weapon.name }}{% endblock %}
 {% block back %}{{ back_link(url_for('main.bulk'), "Weapons") }}{% endblock %}
 {% block content %}
 <section class="panel loadout-head">
   {{ class_icon(weapon.weapon_type.class_name, "md") }}
   <div>
-    <h1>Bulk Report · {{ weapon.name }}</h1>
-    <p class="muted">Your weapon has {{ weapon.max_ammo }} bullets per magazine. Fire modes: {{ weapon.fire_mode_names() }}.</p>
+    <p class="eyebrow">Bulk report</p>
+    <h1 class="display">{{ weapon.name }}</h1>
+    <p class="muted">{{ weapon.max_ammo }} rounds per magazine · {{ weapon.fire_mode_names() }}</p>
   </div>
 </section>
 
@@ -15,22 +16,39 @@
   <label class="inline-field">Shots to test
     <input type="number" name="shots" min="1" max="{{ max_shots }}" value="{{ values.shots }}">
   </label>
-  <label class="inline-field">Distance {{ distance_select(ranges, values.distance) }}</label>
+  <fieldset class="radio-group"><legend>Distance</legend>{{ distance_radios(ranges, values.distance) }}</fieldset>
   <fieldset class="radio-group"><legend>Dummy size</legend>{{ size_radios(sizes, values.size) }}</fieldset>
   <fieldset class="radio-group"><legend>Fire mode</legend>
     {% for mode in weapon.fire_modes %}
       <label class="chip"><input type="radio" name="mode" value="{{ mode.value }}" {% if mode == values.mode %}checked{% endif %}> {{ mode.display_name }}</label>
     {% endfor %}
   </fieldset>
-  <button class="menu-item primary" data-key="1"><span class="key">1.)</span><span class="label">Run report</span></button>
+  <button class="menu-item primary" data-key="1"><span class="key">1</span><span class="label">Run report</span></button>
 </form>
 
 {% if report %}
 {% set totals = report.totals %}
 <section class="panel">
   <h2 class="panel-title">TOTALS FOR ALL SHOTS</h2>
-  <p class="totals">{{ totals.accuracy }}% Accuracy / {{ totals.destroyed }} Dummies Destroyed / {{ totals.damage }} Damage Done</p>
-  <p class="meter">{{ totals.accuracy|round|int|bar(100, 40) }}</p>
+  <div class="tiles">
+    <div class="tile"><span class="caption">Shots</span><strong>{{ totals.shots }}</strong></div>
+    <div class="tile"><span class="caption">Accuracy</span><strong class="{{ totals|accuracy_class }}">{{ totals.accuracy }}%</strong></div>
+    <div class="tile"><span class="caption">Critical hits</span><strong>{{ totals.crits }}</strong></div>
+    <div class="tile"><span class="caption">Dummies destroyed</span><strong>{{ totals.destroyed }}</strong></div>
+    <div class="tile"><span class="caption">Damage</span><strong>{{ totals.damage }}</strong></div>
+  </div>
+  {{ meter(totals.accuracy, 100, "wide " ~ (totals|accuracy_class)) }}
+
+  <h2 class="panel-title">ACCURACY BY MAGAZINE</h2>
+  <div class="mag-chart">
+    {% for magazine in report.magazines %}
+      {% set pct = magazine.accuracy|percent %}
+      <div class="lane-bar" title="Magazine {{ loop.index }}: {{ magazine.hits }}/{{ magazine.shots }} hits">
+        <span class="lane-fill {{ magazine|accuracy_class }}" style="--v: {{ pct }}%; --i: {{ loop.index0 }}"></span>
+        <span class="caption">{{ loop.index }}</span>
+      </div>
+    {% endfor %}
+  </div>
 
   <h2 class="panel-title">BREAKDOWN BY MAGAZINE</h2>
   <div class="table-wrap">

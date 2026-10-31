@@ -4,7 +4,7 @@ import time
 import unittest
 from unittest import mock
 
-from tests.helpers import issue, log_in, make_app
+from tests.helpers import issue, log_in, make_app, rolls
 from webapp.players import Players
 
 
@@ -42,7 +42,7 @@ class PortfolioLoginTests(unittest.TestCase):
         first = self.app.test_client()
         self.log_in(first)
         first.post("/range/setup", data={"weapon": "M1911", "size": "s", "distance": "50"})
-        with mock.patch("random.Random.randint", return_value=1):
+        with rolls(hit=True):
             for _ in range(3):
                 first.post("/range/fire")
         with first.session_transaction() as session:
@@ -52,6 +52,23 @@ class PortfolioLoginTests(unittest.TestCase):
         second = self.app.test_client()
         self.log_in(second)
         self.assertEqual(self.range_weapon(second), "M1911")
+        with second.session_transaction() as session:
+            self.assertEqual(session.get("destroyed", 0), destroyed)
+
+    def test_progress_made_within_one_clock_tick_still_reaches_the_account(self):
+        first = self.app.test_client()
+        self.log_in(first)
+        with mock.patch("webapp.range_session.time.time", return_value=time.time()):
+            first.post("/range/setup", data={"weapon": "M1911", "size": "s", "distance": "50"})
+            with rolls(hit=True):
+                for _ in range(3):
+                    first.post("/range/fire")
+        with first.session_transaction() as session:
+            destroyed = session.get("destroyed", 0)
+        self.assertGreater(destroyed, 0)
+
+        second = self.app.test_client()
+        self.log_in(second)
         with second.session_transaction() as session:
             self.assertEqual(session.get("destroyed", 0), destroyed)
 
@@ -82,6 +99,18 @@ class PortfolioLoginTests(unittest.TestCase):
         client.post("/range/setup", data={"weapon": "AK47", "size": "s", "distance": "50"})
         self.log_in(client, "2")
         self.assertEqual(self.range_weapon(client), "AK47")
+
+    def test_leaving_the_range_on_another_browser_clears_an_older_range(self):
+        old = self.app.test_client()
+        old.post("/range/setup", data={"weapon": "M1911", "size": "s", "distance": "50"})
+        with old.session_transaction() as session:
+            session["saved_at"] = 1
+        newer = self.app.test_client()
+        self.log_in(newer)
+        newer.post("/range/setup", data={"weapon": "AK47", "size": "s", "distance": "50"})
+        newer.post("/range/leave")
+        self.log_in(old)
+        self.assertIsNone(self.range_weapon(old))
 
     def test_bad_callbacks_are_rejected(self):
         client = self.app.test_client()

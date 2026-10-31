@@ -1,6 +1,7 @@
 from gunsystem import FireMode, Weapon
 from gunsystem.dummy import Dummy
 from gunsystem.simulation import pull_trigger
+from gunsystem.util import to_int
 from demo.ui import formatter
 from demo.ui.dummies import prompt_dummy_range, prompt_new_dummy
 from demo.ui.weapons import get_selected_weapon, interactive_reload, print_range_display, set_fire_mode
@@ -73,20 +74,12 @@ def range_main() -> None:
                 break
 
 
-def _requested_shots() -> int:
-    raw = input("How many shots do you want to fire?\n")
-    try:
-        return int(raw)
-    except ValueError:
-        return 1
-
-
 def shoot_dummy(new_dummy: Dummy, selected_weapon: Weapon, fire_mode: FireMode) -> None:
     if selected_weapon.current_ammo == 0:
         print("Out of Ammo! Try Reloading")
         return
 
-    requested = _requested_shots() if fire_mode is FireMode.AUTO else 1
+    requested = to_int(input("How many shots do you want to fire?\n"), 1) if fire_mode is FireMode.AUTO else 1
     input("Press any key to shoot")
     for result, health in pull_trigger(selected_weapon, new_dummy, fire_mode, requested):
         print("Your weapon now has " + str(result.remaining_ammo) + " bullets.")
@@ -94,7 +87,9 @@ def shoot_dummy(new_dummy: Dummy, selected_weapon: Weapon, fire_mode: FireMode) 
             print("Hit!")
             if result.critical:
                 print("Critical hit!")
+            if selected_weapon.pellets > 1:
+                print(f"{result.pellets_hit} of {selected_weapon.pellets} pellets")
             print("Damage dealt = " + str(result.damage))
-            print("Dummy health is now " + str(health) + "\n")
+            print("Dummy health is now " + str(max(health, 0)) + "\n")
         else:
             print("Miss!\n")

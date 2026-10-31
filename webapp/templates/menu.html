@@ -1,22 +1,27 @@
 {% extends "base.html" %}
-{% from "_macros.html" import menu_link %}
+{% from "_macros.html" import menu_card %}
 {% block content %}
-<section class="hero">
+<section class="panel hero">
   <div class="hero-art">{% include "svg/range_scene.svg" %}</div>
-  <div>
-    <h1>Welcome to Ronovo's Stand Alone Gun System</h1>
-    <p class="muted">Designed to be plugged into text adventure games.</p>
-    {% if destroyed %}<p>Dummies destroyed: <strong>{{ destroyed }}</strong></p>{% endif %}
+  <div class="hero-copy">
+    <p class="eyebrow">Ronovo's</p>
+    <h1 class="display">Stand Alone Gun System</h1>
+    <p class="muted">A weapons system built to be plugged into text adventure games. Browse the armory, take a gun down the range, or run the numbers on every weapon at once.</p>
+    <div class="tiles">
+      <div class="tile"><span class="caption">Guns</span><strong>{{ gun_count }}</strong></div>
+      <div class="tile"><span class="caption">Classes</span><strong>{{ class_count }}</strong></div>
+      <div class="tile"><span class="caption">Dummies destroyed</span><strong>{{ destroyed }}</strong></div>
+    </div>
   </div>
 </section>
 
-<section class="panel">
+<section>
   <h2 class="panel-title">MAIN MENU</h2>
-  <ol class="menu">
-    {{ menu_link(1, url_for('main.armory'), "Armory", "View weapons in detail") }}
-    {{ menu_link(2, url_for('main.range_view'), "Range", "Select a gun and try it on the range") }}
-    {{ menu_link(3, url_for('main.bulk'), "Bulk Fire Report", "Fire many rounds and see the numbers") }}
-    {{ menu_link(4, url_for('main.balance'), "Balance Report", "Every gun, every dummy, every range") }}
+  <ol class="cards menu-grid">
+    {{ menu_card(1, url_for('main.armory'), "Armory", "View weapons in detail", "assault") }}
+    {{ menu_card(2, url_for('main.range_view'), "Range", "Select a gun and try it on the range", "sniper") }}
+    {{ menu_card(3, url_for('main.bulk'), "Bulk Fire Report", "Fire many rounds and see the numbers", "lmg") }}
+    {{ menu_card(4, url_for('main.balance'), "Balance Report", "Every gun, every dummy, every range", "shotgun") }}
   </ol>
 </section>
 {% endblock %}

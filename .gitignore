@@ -6,5 +6,8 @@ dist/
 build/
 .venv/
 .pytest_cache/
+.coverage
+coverage/
+node_modules/
 
 data/

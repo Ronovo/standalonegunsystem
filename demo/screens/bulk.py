@@ -1,4 +1,5 @@
 from gunsystem.simulation import MAX_BULK_SHOTS, plan_magazines, report_lines, run_bulk
+from gunsystem.util import to_int
 from demo.ui import formatter
 from demo.ui.dummies import prompt_new_dummy
 from demo.ui.weapons import get_selected_weapon, set_fire_mode
@@ -24,11 +25,7 @@ def bulk_shots() -> None:
 
 def ask_total_shots(max_ammo: int) -> int:
     print(f"Your weapon currently has {max_ammo} bullets per magazine.")
-    answer = input(f"How many shots do you want to test? (up to {MAX_BULK_SHOTS})\n")
-    try:
-        total_shots = int(answer)
-    except ValueError:
-        total_shots = 0
+    total_shots = to_int(input(f"How many shots do you want to test? (up to {MAX_BULK_SHOTS})\n"), 0)
 
     magazine_count, first_mag = plan_magazines(max_ammo, total_shots)
     full_mags = magazine_count if first_mag == max_ammo else magazine_count - 1

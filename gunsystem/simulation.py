@@ -10,8 +10,6 @@ MAGAZINES_PER_RANGE = 15
 MAX_BULK_SHOTS = 1000
 REPORT_DIR = Path("Balance Reports")
 RULE = "-" * 36
-# Rounds per trigger pull on full auto: the range's starting setting, and what reports and bulk fire use.
-AUTO_ROUNDS_PER_PULL = 10
 
 
 @dataclass
@@ -101,7 +99,7 @@ def run_magazines(weapon: Weapon, magazine_count: int, dummy: Dummy, fire_mode: 
             weapon.reload()
         magazine = MagazineResult()
         while weapon.current_ammo > 0:
-            for result, _ in pull_trigger(weapon, dummy, fire_mode, AUTO_ROUNDS_PER_PULL):
+            for result, _ in pull_trigger(weapon, dummy, fire_mode, weapon.rounds_per_pull):
                 if result.hit:
                     magazine.hits += 1
                     magazine.crits += result.critical

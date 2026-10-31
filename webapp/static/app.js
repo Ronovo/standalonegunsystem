@@ -22,6 +22,8 @@
       return;
     }
     if (event.key === "Escape") {
+      clearTimeout(timer);
+      buffer = "";
       document.querySelector("[data-back]")?.click();
       return;
     }
@@ -49,6 +51,26 @@
       button.disabled = false;
     });
   });
+})();
+
+// Toasts: the server's flashed messages arrive rendered; the live range adds its own.
+(() => {
+  const list = document.getElementById("toasts");
+  const LIFETIME = 5000;
+  const dismiss = (toast) => {
+    toast.classList.add("leaving");
+    setTimeout(() => toast.remove(), 400);
+  };
+  window.gunToast = (text) => {
+    if (!list) return null;
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = text;
+    list.append(toast);
+    setTimeout(() => dismiss(toast), LIFETIME);
+    return toast;
+  };
+  list?.querySelectorAll(".toast").forEach((toast) => setTimeout(() => dismiss(toast), LIFETIME));
 })();
 
 // Names the portfolio account this browser is logged in to on the login link, when the portfolio says who that is.

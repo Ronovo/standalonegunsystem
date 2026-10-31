@@ -1,3 +1,4 @@
+import json
 import os
 
 from flask import Flask, g, redirect, session, url_for
@@ -70,15 +71,19 @@ def add_portfolio_login(app: Flask) -> None:
     def inject_portfolio():
         return {"portfolio": True, "portfolio_url": portfolio_sso.portfolio_url()}
 
-    @app.before_request
-    def note_saved_at():
-        g.saved_at = session.get("saved_at")
+    # Kept as JSON because the range is changed in place, so a plain copy would change along with it.
+    def progress_snapshot():
+        return json.dumps(progress(), sort_keys=True)
 
-    # Only requests that changed the range (and so its saved_at) write the account's copy. Progress changed while
+    @app.before_request
+    def note_progress():
+        g.progress = progress_snapshot()
+
+    # Only requests that changed the range or destroyed count write the account's copy. Progress changed while
     # logged out has no owner any more, so it joins whichever account logs in next.
     @app.after_request
     def save_progress(response):
-        if session.get("saved_at") != g.get("saved_at"):
+        if progress_snapshot() != g.get("progress"):
             if session.get("portfolio_sub"):
                 players.store(session["portfolio_sub"], progress(), session.get("saved_at", 0))
             else:

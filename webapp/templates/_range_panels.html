@@ -1,0 +1,151 @@
+{% from "_macros.html" import ammo_display, class_icon, meter, size_radios %}
+{% set health = [dummy.health, 0]|max %}
+<div class="range-grid">
+  <section class="panel loadout">
+    <h2 class="panel-title">LOADOUT</h2>
+    <div class="loadout-head">
+      {{ class_icon(weapon.weapon_type.class_name, "md") }}
+      <div>
+        <strong class="display">{{ weapon.name }}</strong><br>
+        <span class="muted">{{ weapon.weapon_type.class_name }} · {{ rs.fire_mode.display_name }}</span>
+      </div>
+    </div>
+    <div class="readout-line">
+      <span class="caption">Ammo</span>
+      {{ ammo_display(weapon) }}
+      <span class="num" data-bind="ammo">{{ weapon.current_ammo }}/{{ weapon.max_ammo }}</span>
+    </div>
+    <div class="readout-line">
+      <span class="caption">Hit chance</span>
+      {{ meter(hit_chance * 100, 100, "chance " ~ ((hit_chance * 100)|percent|chance_class)) }}
+      <span class="num">{{ "%.0f"|format(hit_chance * 100) }}% first shot</span>
+    </div>
+    <details class="menu-details">
+      <summary class="menu-item" data-key="5"><span class="key">5</span><span class="label">Current weapon info</span></summary>
+      <pre class="readout">{{ weapon.describe(include_ammo=True) }}</pre>
+    </details>
+  </section>
+
+  <section class="panel lane">
+    <h2 class="panel-title">LANE · <span data-bind="distance">{{ dummy.distance }}</span> M</h2>
+    <div class="lane-view">
+      <svg class="lane-scene" viewBox="0 0 600 240" preserveAspectRatio="none" aria-hidden="true">
+        <rect class="scene-wall" width="600" height="110"/>
+        <path class="scene-floor" d="M0 240h600L372 110H228z"/>
+        <path class="scene-lane" d="M90 240 246 110M300 240V110M510 240 354 110"/>
+        {% for distance in ranges %}
+          {% set y = 236 - loop.index0 * 21 %}
+          <path class="scene-tick" d="M4 {{ y }}h14"/>
+          <text class="scene-mark" x="22" y="{{ y + 4 }}">{{ distance }} m</text>
+        {% endfor %}
+      </svg>
+      <div class="dummy-stand" style="--far: {{ dummy_far }}; --h: {{ dummy_height }}px">
+        <div class="dummy{% if dummy.is_destroyed() %} destroyed{% endif %}" data-bind="dummy">{% include "svg/dummy.svg" %}</div>
+        <div class="reticle" data-bind="reticle"><i></i></div>
+        <div class="lane-fx" data-bind="fx"></div>
+      </div>
+    </div>
+    <div class="readout-line">
+      <span class="caption">{{ dummy.size_label }} dummy</span>
+      {{ meter(health, dummy.max_health, "health") }}
+      <span class="num"><span data-bind="health">{{ health }}</span>/{{ dummy.max_health }}</span>
+    </div>
+  </section>
+
+  <section class="panel shooting">
+    <h2 class="panel-title">SHOOTING MENU</h2>
+    {% if dummy.is_destroyed() %}
+      <p class="alert">DUMMY DESTROYED! You have destroyed {{ destroyed }} dumm{{ "y" if destroyed == 1 else "ies" }}.</p>
+      <form method="post" action="{{ url_for('main.range_new_dummy') }}" class="menu-row" data-live="dummy">
+        <button class="menu-item" data-key="1"><span class="key">1</span><span class="label">New dummy at the same range</span></button>
+        <span class="choices">{{ size_radios(sizes, dummy.size) }}</span>
+      </form>
+    {% else %}
+      <ol class="menu">
+        <li>
+          <form method="post" action="{{ url_for('main.range_fire') }}" class="menu-row" data-live="fire">
+            <button class="menu-item fire" data-key="1" {% if not weapon.current_ammo %}disabled{% endif %}>
+              <span class="key">1</span><span class="label">Fire {{ rs.fire_label }}</span>
+              {% if not weapon.current_ammo %}<span class="hint">Out of ammo</span>{% endif %}
+            </button>
+            {% if rs.fire_mode.name == "AUTO" %}
+              <label class="inline-field">Rounds
+                <input type="number" name="rounds" min="1" max="{{ weapon.max_ammo }}" value="{{ [rs.state.rounds, weapon.max_ammo]|min }}">
+              </label>
+            {% endif %}
+          </form>
+        </li>
+        <li>
+          <form method="post" action="{{ url_for('main.range_mode') }}" class="menu-row" data-live="mode">
+            <button class="menu-item" name="mode" value="next" data-key="2" {% if weapon.fire_modes|length < 2 %}disabled{% endif %}>
+              <span class="key">2</span><span class="label">Change fire mode</span>
+            </button>
+            <span class="segmented">
+              {% for mode in weapon.fire_modes %}
+                <button class="chip{% if mode == rs.fire_mode %} active{% endif %}" name="mode" value="{{ mode.value }}">{{ mode.display_name }}</button>
+              {% endfor %}
+            </span>
+          </form>
+        </li>
+        <li>
+          <form method="post" action="{{ url_for('main.range_distance') }}" class="menu-row" data-live="distance">
+            <span class="menu-item static"><span class="key">3</span><span class="label">Dummy range</span></span>
+            <span class="choices">
+              {% for distance in ranges %}
+                <button class="chip{% if distance == dummy.distance %} active{% endif %}" name="distance" value="{{ distance }}"
+                  {% if distance == dummy.distance %}data-key="3" data-focus{% endif %}>{{ distance }} m</button>
+              {% endfor %}
+            </span>
+          </form>
+        </li>
+      </ol>
+    {% endif %}
+    <ol class="menu">
+      <li>
+        <form method="post" action="{{ url_for('main.range_reload') }}" data-live="reload">
+          <button class="menu-item reload" data-key="4" data-seconds="{{ weapon.reload_seconds }}" {% if not reload_label %}disabled{% endif %}>
+            <span class="key">4</span><span class="label">{{ reload_label or "Ammo full" }}</span>
+            <span class="hint">{{ weapon.reload_style.note }}</span>
+            <span class="progress" aria-hidden="true"></span>
+          </button>
+        </form>
+      </li>
+      <li>
+        <a class="menu-item" href="{{ url_for('main.range_weapon') }}" data-key="6"><span class="key">6</span><span class="label">Switch weapons</span></a>
+      </li>
+      <li>
+        <form method="post" action="{{ url_for('main.range_leave') }}">
+          <button class="menu-item" data-key="7"><span class="key">7</span><span class="label">Quit to main menu</span></button>
+        </form>
+      </li>
+    </ol>
+  </section>
+
+  <section class="panel log">
+    <h2 class="panel-title">SHOT LOG</h2>
+    {% for entry in log %}
+      <div class="pull{% if loop.first %} latest{% endif %}">
+        <p class="pull-head">
+          <span>{{ entry.mode }} @ {{ entry.distance }} m</span>
+          <span class="marks">{% for mark in entry.marks %}<span class="mark-{{ {'+': 'hit', '*': 'crit', '-': 'miss'}[mark] }}" style="--i: {{ loop.index0 }}">{{ mark }}</span>{% endfor %}</span>
+          <span class="muted">{{ entry.hits }}/{{ entry.marks|length }} hits · {{ entry.damage }} dmg</span>
+        </p>
+        {% if entry.shots %}
+          <ol class="shots">
+            {% for damage, after, pellets in entry.shots %}
+              {% set mark = entry.marks[loop.index0] %}
+              {% if mark == "-" %}
+                <li class="mark-miss" style="--i: {{ loop.index0 }}">Miss!</li>
+              {% else %}
+                <li class="mark-{{ 'crit' if mark == '*' else 'hit' }}" style="--i: {{ loop.index0 }}">{{ "Critical hit!" if mark == "*" else "Hit!" }}{% if entry.pellets > 1 %} {{ pellets }} of {{ entry.pellets }} pellets.{% endif %} {{ damage }} damage. Dummy health is now {{ after }}.</li>
+              {% endif %}
+            {% endfor %}
+          </ol>
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="muted">No shots fired yet. Press <kbd>1</kbd> to fire.</p>
+    {% endfor %}
+    <p class="muted legend"><span class="mark-hit">+</span> hit · <span class="mark-crit">*</span> critical · <span class="mark-miss">-</span> miss</p>
+  </section>
+</div>
