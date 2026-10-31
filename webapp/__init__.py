@@ -1,7 +1,7 @@
 import json
 import os
 
-from flask import Flask, g, redirect, session, url_for
+from flask import Flask, flash, g, redirect, session, url_for
 
 from ronovo_portfolio_auth import portfolio_sso
 
@@ -15,6 +15,7 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["SECRET_KEY"] = os.environ.get("GUNSYSTEM_SECRET_KEY") or os.urandom(24).hex()
     app.config["DATA_DIR"] = os.environ.get("DATA_DIR", "data")
     app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SECURE_COOKIES") == "1"
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     if config:
         app.config.update(config)
 
@@ -37,7 +38,7 @@ def add_portfolio_login(app: Flask) -> None:
     def progress():
         return {key: session.get(key) for key in PROGRESS_KEYS}
 
-    def portfolio_login(account):
+    def portfolio_login(account, next_path):
         # Progress this browser kept for a different account stays with that account instead of being
         # saved into this one. Progress made before any login has no owner and joins this account.
         if session.get("progress_owner", account["sub"]) != account["sub"]:
@@ -57,9 +58,13 @@ def add_portfolio_login(app: Flask) -> None:
         session["portfolio_sub"] = account["sub"]
         session["portfolio_user"] = account["username"]
         players.store(account["sub"], progress(), session.get("saved_at", 0))
+        return redirect(next_path or url_for("main.menu"))
+
+    def portfolio_error(reason):
+        flash(portfolio_sso.LOGIN_MESSAGES[reason])
         return redirect(url_for("main.menu"))
 
-    portfolio_sso.add_flask_routes(app, "gunsystem", portfolio_login)
+    portfolio_sso.add_flask_routes(app, "gunsystem", portfolio_login, portfolio_error)
 
     @app.post("/logout")
     def logout():

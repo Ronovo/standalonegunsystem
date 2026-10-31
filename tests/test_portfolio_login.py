@@ -3,6 +3,7 @@ import tempfile
 import time
 import unittest
 from unittest import mock
+from urllib.parse import parse_qs, urlsplit
 
 from tests.helpers import issue, log_in, make_app, rolls
 from webapp.players import Players
@@ -112,11 +113,35 @@ class PortfolioLoginTests(unittest.TestCase):
         self.log_in(old)
         self.assertIsNone(self.range_weapon(old))
 
-    def test_bad_callbacks_are_rejected(self):
+    def test_bad_token_is_refused_with_a_message(self):
         client = self.app.test_client()
-        self.assertEqual(self.log_in(client, token=issue(aud="casino")).status_code, 400)
-        self.assertEqual(client.post("/sso/callback", data={"state": "nope", "token": issue()}).status_code, 400)
-        self.assertIn(b"Log in with portfolio account", client.get("/").data)
+        response = self.log_in(client, token=issue(aud="casino"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/")
+        page = client.get("/").data
+        self.assertIn(b"That portfolio login didn&#39;t check out. Try again.", page)
+        self.assertIn(b"Log in with portfolio account", page)
+
+    def test_callback_without_a_login_in_progress_is_refused_with_a_message(self):
+        client = self.app.test_client()
+        response = client.post("/sso/callback", data={"state": "nope", "token": issue()})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/")
+        page = client.get("/").data
+        self.assertIn(b"Your portfolio login expired. Try again.", page)
+        self.assertIn(b"Log in with portfolio account", page)
+
+    def test_login_returns_to_the_page_it_started_from(self):
+        client = self.app.test_client()
+        query = parse_qs(urlsplit(client.get("/sso/login?next=/range").location).query)
+        response = client.post("/sso/callback", data={"state": query["state"][0], "token": issue()})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/range")
+
+    def test_session_cookie_is_same_site_lax(self):
+        client = self.app.test_client()
+        response = client.get("/sso/login")
+        self.assertIn("SameSite=Lax", response.headers["Set-Cookie"])
 
 
 class PlayersTests(unittest.TestCase):
